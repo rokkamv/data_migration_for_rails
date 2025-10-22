@@ -1,0 +1,16 @@
+ModelName1:
+  id_based_association:
+    assocn1_id|AdminPermission:
+      - .assocn1&.attr1
+      - .assocn1&.attr2
+      - .assocn1&.attr3
+      - .assocn1&.attr4
+    assocn2_id|AdminRole:
+      - .assocn2&.attr5
+  uniq_record_id_cols:
+    - assocn1_id
+    - assocn2_id
+  records_filter: "src_records = ModelName1.all"
+  ignore_on_update:
+    - assocn1_id
+    - assocn2_id
