@@ -1,0 +1,9 @@
+<div class="row justify-content-center">
+  <div class="col-md-10">
+    <h1 class="mb-4">New Migration Step for <%= @migration_plan.name %></h1>
+
+    <%= render 'form', migration_step: @migration_step, migration_plan: @migration_plan %>
+
+    <%= link_to "Cancel", @migration_plan, class: "btn btn-secondary mt-3" %>
+  </div>
+</div>

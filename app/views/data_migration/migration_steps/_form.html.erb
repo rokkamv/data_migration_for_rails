@@ -1,0 +1,76 @@
+<%= form_with(model: [migration_plan, migration_step], local: true, class: "needs-validation") do |form| %>
+  <% if migration_step.errors.any? %>
+    <div class="alert alert-danger">
+      <h4><%= pluralize(migration_step.errors.count, "error") %> prohibited this step from being saved:</h4>
+      <ul class="mb-0">
+        <% migration_step.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="row">
+    <div class="col-md-8">
+      <div class="mb-3">
+        <%= form.label :source_model_name, "Model Name", class: "form-label" %>
+        <%= form.text_field :source_model_name, class: "form-control", placeholder: "e.g., User, Post, Comment", required: true %>
+        <div class="form-text">The ActiveRecord model class name to migrate.</div>
+      </div>
+
+      <div class="mb-3">
+        <%= form.label :filter_query, "Filter Query (optional)", class: "form-label" %>
+        <%= form.text_area :filter_query, class: "form-control font-monospace", rows: 3, placeholder: "e.g., where(active: true).where('created_at > ?', 1.year.ago)" %>
+        <div class="form-text">
+          Optional ActiveRecord query to filter which records to include. Leave blank to migrate all records.
+          <br><strong>Example:</strong> <code>where(status: 'active')</code>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <%= form.label :column_overrides, "Column Overrides (JSON)", class: "form-label" %>
+        <%= form.text_area :column_overrides, class: "form-control font-monospace", rows: 5, placeholder: '{"association_name": ["attribute1", "attribute2"]}' %>
+        <div class="form-text">
+          JSON object mapping associations to their attributes for export.
+          <br><strong>Example:</strong> <code>{"company": ["name", "code"], "role": ["title"]}</code>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <%= form.label :association_overrides, "Association ID Mappings (JSON)", class: "form-label" %>
+        <%= form.text_area :association_overrides, class: "form-control font-monospace", rows: 5, placeholder: '{"company_id": {"model": "Company", "lookup_attributes": ["name"]}}' %>
+        <div class="form-text">
+          JSON object for remapping foreign key IDs during import based on lookup attributes.
+          <br><strong>Example:</strong> <code>{"company_id": {"model": "Company", "lookup_attributes": ["code"]}, "manager_id": {"model": "Employee", "lookup_attributes": ["email"]}}</code>
+          <br><small class="text-muted">This remaps IDs by finding records in the target database using the specified lookup attributes instead of using source IDs directly.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="mb-3">
+        <%= form.label :sequence, "Execution Order", class: "form-label" %>
+        <%= form.number_field :sequence, class: "form-control", min: 1, required: true, value: migration_step.sequence || (migration_plan.migration_steps.maximum(:sequence) || 0) + 1 %>
+        <div class="form-text">
+          Steps are executed in ascending order. Dependencies should be migrated first.
+        </div>
+      </div>
+
+      <div class="card bg-light">
+        <div class="card-body">
+          <h6 class="card-title">💡 Tips</h6>
+          <ul class="small mb-0">
+            <li>Migrate parent models before child models</li>
+            <li>Use filter queries to limit data scope</li>
+            <li>Column overrides include association data in exports</li>
+            <li>Test with small datasets first</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mb-3">
+    <%= form.submit migration_step.new_record? ? "Create Step" : "Update Step", class: "btn btn-primary" %>
+  </div>
+<% end %>

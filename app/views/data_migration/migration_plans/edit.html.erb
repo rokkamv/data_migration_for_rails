@@ -1,0 +1,12 @@
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <h1 class="mb-4">Edit Migration Plan</h1>
+
+    <%= render 'form', migration_plan: @migration_plan %>
+
+    <div class="mt-3">
+      <%= link_to "View Plan", @migration_plan, class: "btn btn-primary" %>
+      <%= link_to "Cancel", migration_plans_path, class: "btn btn-secondary" %>
+    </div>
+  </div>
+</div>

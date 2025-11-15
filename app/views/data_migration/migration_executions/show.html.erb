@@ -1,0 +1,226 @@
+<div class="mb-4">
+  <div class="d-flex justify-content-between align-items-center">
+    <div>
+      <h1>
+        <%= execution_type_icon(@execution.execution_type) %>
+        <%= @execution.display_name %>
+      </h1>
+      <p class="text-muted mb-0">
+        Started <%= time_ago_in_words(@execution.created_at) %> ago
+        by <%= @execution.user.email %>
+      </p>
+    </div>
+    <div>
+      <span class="badge bg-<%= execution_status_color(@execution.status) %> fs-5">
+        <%= @execution.status.titleize %>
+      </span>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <!-- Progress Card -->
+    <div class="card mb-4" data-controller="execution-monitor" data-execution-monitor-id-value="<%= @execution.id %>">
+      <div class="card-header">
+        <h5 class="mb-0">Progress</h5>
+      </div>
+      <div class="card-body">
+        <% if @execution.running? || @execution.pending? %>
+          <div class="progress mb-3" style="height: 30px;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                 role="progressbar"
+                 style="width: <%= @execution.progress_percentage %>%"
+                 data-execution-monitor-target="progressBar">
+              <%= @execution.progress_percentage %>%
+            </div>
+          </div>
+          <p class="text-center text-muted" data-execution-monitor-target="statusMessage">
+            <% if @execution.pending? %>
+              Waiting to start...
+            <% else %>
+              Processing...
+            <% end %>
+          </p>
+        <% elsif @execution.completed? %>
+          <div class="alert alert-success">
+            <h5>✅ <%= @execution.execution_type.titleize %> Completed Successfully</h5>
+            <p class="mb-0">
+              Duration: <%= distance_of_time_in_words(@execution.duration) %>
+            </p>
+          </div>
+        <% elsif @execution.failed? %>
+          <div class="alert alert-danger">
+            <h5>❌ <%= @execution.execution_type.titleize %> Failed</h5>
+            <% if @execution.error_log.present? %>
+              <details>
+                <summary>View Error Details</summary>
+                <pre class="mt-2"><%= @execution.error_log %></pre>
+              </details>
+            <% end %>
+          </div>
+        <% end %>
+
+        <!-- Statistics -->
+        <% if @execution.stats.present? %>
+          <div class="row text-center mt-4">
+            <% if @execution.export? %>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body">
+                    <h3 class="text-primary"><%= @execution.stats['processed_records'] || 0 %></h3>
+                    <p class="text-muted mb-0">Records Exported</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="card">
+                  <div class="card-body">
+                    <h3 class="text-info"><%= @execution.stats['completed_steps'] || 0 %></h3>
+                    <p class="text-muted mb-0">Steps Completed</p>
+                  </div>
+                </div>
+              </div>
+            <% else %>
+              <div class="col-md-3">
+                <div class="card">
+                  <div class="card-body">
+                    <h3 class="text-success"><%= @execution.stats['created'] || 0 %></h3>
+                    <p class="text-muted mb-0">Created</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card">
+                  <div class="card-body">
+                    <h3 class="text-warning"><%= @execution.stats['updated'] || 0 %></h3>
+                    <p class="text-muted mb-0">Updated</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card">
+                  <div class="card-body">
+                    <h3 class="text-secondary"><%= @execution.stats['skipped'] || 0 %></h3>
+                    <p class="text-muted mb-0">Skipped</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-3">
+                <div class="card">
+                  <div class="card-body">
+                    <h3 class="text-danger"><%= @execution.stats['failed'] || 0 %></h3>
+                    <p class="text-muted mb-0">Failed</p>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+
+        <!-- Download Export -->
+        <% if @execution.completed? && @execution.export? && @execution.file_path.present? %>
+          <div class="d-grid gap-2 mt-4">
+            <%= link_to "📥 Download Export Archive", download_migration_execution_path(@execution), class: "btn btn-success btn-lg" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+
+    <!-- Migration Records -->
+    <% if @execution.import? && @migration_records.any? %>
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">Recent Records (Last 100)</h5>
+          <span class="badge bg-secondary"><%= @execution.migration_records.count %> total</span>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead>
+                <tr>
+                  <th>Model</th>
+                  <th>Record</th>
+                  <th>Action</th>
+                  <th>Error</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @migration_records.each do |record| %>
+                  <tr>
+                    <td><%= record.migrated_model_name %></td>
+                    <td><small><%= record.record_identifier %></small></td>
+                    <td>
+                      <span class="badge bg-<%= record.success? ? 'success' : 'danger' %>">
+                        <%= record.action.titleize %>
+                      </span>
+                    </td>
+                    <td>
+                      <% if record.error_message.present? %>
+                        <small class="text-danger"><%= truncate(record.error_message, length: 50) %></small>
+                      <% end %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="col-md-4">
+    <!-- Info Card -->
+    <div class="card mb-4">
+      <div class="card-header">
+        <h6 class="mb-0">Execution Info</h6>
+      </div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-sm-5">Type:</dt>
+          <dd class="col-sm-7"><%= @execution.execution_type.titleize %></dd>
+
+          <dt class="col-sm-5">Started:</dt>
+          <dd class="col-sm-7">
+            <% if @execution.started_at %>
+              <%= @execution.started_at.strftime("%Y-%m-%d %H:%M:%S") %>
+            <% else %>
+              <em>Not started</em>
+            <% end %>
+          </dd>
+
+          <dt class="col-sm-5">Completed:</dt>
+          <dd class="col-sm-7">
+            <% if @execution.completed_at %>
+              <%= @execution.completed_at.strftime("%Y-%m-%d %H:%M:%S") %>
+            <% else %>
+              <em>In progress</em>
+            <% end %>
+          </dd>
+
+          <% if @execution.duration %>
+            <dt class="col-sm-5">Duration:</dt>
+            <dd class="col-sm-7"><%= distance_of_time_in_words(@execution.duration) %></dd>
+          <% end %>
+
+          <dt class="col-sm-5">User:</dt>
+          <dd class="col-sm-7"><%= @execution.user.email %></dd>
+        </dl>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card">
+      <div class="card-body">
+        <%= link_to "← Back to Plan", @execution.migration_plan, class: "btn btn-secondary w-100 mb-2" %>
+        <%= link_to "View All Executions", migration_executions_path, class: "btn btn-outline-secondary w-100" %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Auto-reload for running executions -->
+<% if @execution.running? || @execution.pending? %>
+  <meta http-equiv="refresh" content="5">
+<% end %>

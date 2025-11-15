@@ -1,0 +1,81 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Migration Plans</h1>
+  <% if policy(MigrationPlan).create? %>
+    <%= link_to "New Migration Plan", new_migration_plan_path, class: "btn btn-primary" %>
+  <% end %>
+</div>
+
+<% if @migration_plans.any? %>
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Steps</th>
+          <th>Last Execution</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @migration_plans.each do |plan| %>
+          <tr>
+            <td>
+              <%= link_to plan.name, plan, class: "text-decoration-none" %>
+            </td>
+            <td><%= truncate(plan.description, length: 60) %></td>
+            <td>
+              <span class="badge bg-secondary"><%= plan.migration_steps.count %></span>
+            </td>
+            <td>
+              <% if plan.last_execution %>
+                <span class="badge bg-<%= execution_status_color(plan.last_execution.status) %>">
+                  <%= plan.last_execution.status.titleize %>
+                </span>
+                <small class="text-muted d-block">
+                  <%= time_ago_in_words(plan.last_execution.created_at) %> ago
+                </small>
+              <% else %>
+                <span class="text-muted">Never executed</span>
+              <% end %>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm" role="group">
+                <%= link_to "View", plan, class: "btn btn-outline-primary" %>
+
+                <% if policy(plan).execute? %>
+                  <%= button_to "Export", migration_plan_export_path(plan),
+                      method: :post,
+                      class: "btn btn-outline-success",
+                      data: { confirm: "Start export for #{plan.name}?" } %>
+
+                  <%= link_to "Import", migration_plan_new_import_path(plan),
+                      class: "btn btn-outline-info" %>
+                <% end %>
+
+                <% if policy(plan).update? %>
+                  <%= link_to "Edit", edit_migration_plan_path(plan), class: "btn btn-outline-warning" %>
+                <% end %>
+
+                <% if policy(plan).destroy? %>
+                  <%= button_to "Delete", plan,
+                      method: :delete,
+                      class: "btn btn-outline-danger",
+                      data: { confirm: "Are you sure? This will delete all steps." } %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <div class="alert alert-info">
+    <h4>No Migration Plans Yet</h4>
+    <p>Get started by creating your first migration plan.</p>
+    <% if policy(MigrationPlan).create? %>
+      <%= link_to "Create Migration Plan", new_migration_plan_path, class: "btn btn-primary" %>
+    <% end %>
+  </div>
+<% end %>

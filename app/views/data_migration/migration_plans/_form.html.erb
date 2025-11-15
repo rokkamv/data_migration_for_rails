@@ -1,0 +1,28 @@
+<%= form_with(model: migration_plan, local: true, class: "needs-validation") do |form| %>
+  <% if migration_plan.errors.any? %>
+    <div class="alert alert-danger">
+      <h4><%= pluralize(migration_plan.errors.count, "error") %> prohibited this migration plan from being saved:</h4>
+      <ul class="mb-0">
+        <% migration_plan.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= form.label :name, class: "form-label" %>
+    <%= form.text_field :name, class: "form-control", placeholder: "e.g., User Data Migration", required: true %>
+    <div class="form-text">A unique name to identify this migration plan, use enough identfiers to make it unique and recognizable.</div>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :description, class: "form-label" %>
+    <%= form.text_area :description, class: "form-control", rows: 4, placeholder: "Describe what this migration plan does..." %>
+    <div class="form-text">Optional description of what data this plan migrates.</div>
+  </div>
+
+  <div class="mb-3">
+    <%= form.submit migration_plan.new_record? ? "Create Migration Plan" : "Update Migration Plan", class: "btn btn-primary" %>
+  </div>
+<% end %>

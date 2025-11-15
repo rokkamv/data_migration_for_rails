@@ -1,0 +1,78 @@
+<h1 class="mb-4">Execution History</h1>
+
+<% if @executions.any? %>
+  <div class="table-responsive">
+    <table class="table table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>Type</th>
+          <th>Migration Plan</th>
+          <th>Status</th>
+          <th>Started</th>
+          <th>Duration</th>
+          <th>User</th>
+          <th>Stats</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @executions.each do |execution| %>
+          <tr>
+            <td>
+              <%= execution_type_icon(execution.execution_type) %>
+              <%= execution.execution_type.titleize %>
+            </td>
+            <td>
+              <%= link_to execution.migration_plan.name, execution.migration_plan, class: "text-decoration-none" %>
+            </td>
+            <td>
+              <span class="badge bg-<%= execution_status_color(execution.status) %>">
+                <%= execution.status.titleize %>
+              </span>
+            </td>
+            <td>
+              <%= execution.started_at&.strftime("%Y-%m-%d %H:%M") || 'Pending' %>
+            </td>
+            <td>
+              <% if execution.duration %>
+                <%= distance_of_time_in_words(execution.duration) %>
+              <% else %>
+                <span class="text-muted">-</span>
+              <% end %>
+            </td>
+            <td>
+              <small><%= execution.user.email %></small>
+            </td>
+            <td>
+              <% if execution.stats.present? %>
+                <small>
+                  <% if execution.export? %>
+                    <%= execution.stats['processed_records'] || 0 %> records
+                  <% else %>
+                    <span class="text-success"><%= execution.stats['created'] || 0 %></span> /
+                    <span class="text-warning"><%= execution.stats['updated'] || 0 %></span> /
+                    <span class="text-danger"><%= execution.stats['failed'] || 0 %></span>
+                  <% end %>
+                </small>
+              <% end %>
+            </td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <%= link_to "View", execution, class: "btn btn-outline-primary" %>
+                <% if execution.completed? && execution.export? && execution.file_path.present? %>
+                  <%= link_to "Download", download_migration_execution_path(execution), class: "btn btn-outline-success" %>
+                <% end %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% else %>
+  <div class="alert alert-info">
+    <h4>No Executions Yet</h4>
+    <p>Start an export or import from a migration plan to see execution history here.</p>
+    <%= link_to "View Migration Plans", migration_plans_path, class: "btn btn-primary" %>
+  </div>
+<% end %>

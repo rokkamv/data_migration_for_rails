@@ -1,0 +1,102 @@
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1><%= @migration_plan.name %></h1>
+    <p class="text-muted"><%= @migration_plan.description %></p>
+  </div>
+  <div class="btn-group">
+    <% if policy(@migration_plan).execute? %>
+      <%= button_to "Export", migration_plan_export_path(@migration_plan),
+          method: :post,
+          class: "btn btn-success",
+          data: { confirm: "Start export for #{@migration_plan.name}?" } %>
+      <%= link_to "Import", migration_plan_new_import_path(@migration_plan),
+          class: "btn btn-info" %>
+    <% end %>
+    <% if policy(@migration_plan).update? %>
+      <%= link_to "Edit Plan", edit_migration_plan_path(@migration_plan), class: "btn btn-warning" %>
+    <% end %>
+    <%= link_to "Back", migration_plans_path, class: "btn btn-secondary" %>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-8">
+    <div class="card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Migration Steps</h5>
+        <% if policy(@migration_plan).update? %>
+          <%= link_to "Add Step", new_migration_plan_migration_step_path(@migration_plan), class: "btn btn-sm btn-primary" %>
+        <% end %>
+      </div>
+      <div class="card-body">
+        <% if @migration_plan.migration_steps.any? %>
+          <div class="list-group">
+            <% @migration_plan.migration_steps.order(:sequence).each do |step| %>
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6 class="mb-1">
+                      <span class="badge bg-primary me-2"><%= step.sequence %></span>
+                      <%= step.source_model_name %>
+                    </h6>
+                    <% if step.filter_query.present? %>
+                      <small class="text-muted">
+                        <strong>Filter:</strong> <%= truncate(step.filter_query, length: 80) %>
+                      </small>
+                    <% end %>
+                  </div>
+                  <% if policy(step).update? %>
+                    <div class="btn-group btn-group-sm">
+                      <%= link_to "Edit", edit_migration_plan_migration_step_path(@migration_plan, step), class: "btn btn-sm btn-outline-warning" %>
+                      <%= button_to "Delete", migration_plan_migration_step_path(@migration_plan, step),
+                          method: :delete,
+                          class: "btn btn-sm btn-outline-danger",
+                          data: { confirm: "Delete this step?" } %>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        <% else %>
+          <p class="text-muted text-center py-4">No steps configured yet.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-header">
+        <h5 class="mb-0">Recent Executions</h5>
+      </div>
+      <div class="card-body">
+        <% if @migration_plan.migration_executions.any? %>
+          <div class="list-group list-group-flush">
+            <% @migration_plan.migration_executions.recent.limit(5).each do |execution| %>
+              <%= link_to migration_execution_path(execution), class: "list-group-item list-group-item-action" do %>
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <%= execution_type_icon(execution.execution_type) %>
+                    <strong><%= execution.execution_type.titleize %></strong>
+                    <br>
+                    <small class="text-muted">
+                      <%= time_ago_in_words(execution.created_at) %> ago
+                      by <%= execution.user.email %>
+                    </small>
+                  </div>
+                  <span class="badge bg-<%= execution_status_color(execution.status) %>">
+                    <%= execution.status.titleize %>
+                  </span>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+          <%= link_to "View All Executions", migration_executions_path(plan_id: @migration_plan.id), class: "btn btn-sm btn-outline-primary w-100 mt-3" %>
+        <% else %>
+          <p class="text-muted text-center">No executions yet.</p>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

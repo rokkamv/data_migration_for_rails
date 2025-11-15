@@ -1,0 +1,42 @@
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <h1 class="mb-4">Import Data</h1>
+
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title"><%= @migration_plan.name %></h5>
+        <p class="card-text text-muted"><%= @migration_plan.description %></p>
+
+        <hr>
+
+        <%= form_with url: migration_plan_import_path(@migration_plan), method: :post, multipart: true, local: true do |form| %>
+          <div class="mb-3">
+            <%= form.label :archive_file, "Upload Export Archive", class: "form-label" %>
+            <%= form.file_field :archive_file, class: "form-control", accept: ".tar.gz,.tgz", required: true %>
+            <div class="form-text">
+              Select the .tar.gz file exported from the source environment.
+            </div>
+          </div>
+
+          <div class="alert alert-warning">
+            <h6>⚠️ Important Notes:</h6>
+            <ul class="mb-0">
+              <li>This will import data according to the configured migration steps.</li>
+              <li>Existing records will be updated based on unique identifiers.</li>
+              <li>The import runs in the background. You'll be redirected to monitor progress.</li>
+              <li>Make sure you have a database backup before proceeding.</li>
+            </ul>
+          </div>
+
+          <div class="d-grid gap-2">
+            <%= form.submit "Start Import", class: "btn btn-primary btn-lg", data: { confirm: "Are you sure you want to import this data?" } %>
+          </div>
+        <% end %>
+
+        <div class="mt-3">
+          <%= link_to "Cancel", @migration_plan, class: "btn btn-secondary" %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
