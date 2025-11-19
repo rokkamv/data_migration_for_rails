@@ -17,6 +17,7 @@ module Exports
         processed_records: 0,
         errors: []
       }
+      @exported_ids_cache = {} # Cache format: { step_id => { 'column_name' => [values] } }
     end
 
     def call
@@ -50,15 +51,29 @@ module Exports
       @stats[:total_records] += records.count
       update_progress
 
+      # Initialize cache for this step based on what dependent steps need
+      initialize_cache_for_step(step, model_class)
+
       csv_path = File.join(temp_dir, "#{step.source_model_name}_export.csv")
 
       CSV.open(csv_path, "wb") do |csv|
         csv << headers_for_step(step, model_class)
 
-        records.find_each do |record|
-          csv << row_data_for_record(record, step)
-          @stats[:processed_records] += 1
-          update_progress if @stats[:processed_records] % 100 == 0
+        # Handle both ActiveRecord::Relation and Array
+        if records.is_a?(Array)
+          records.each do |record|
+            csv << row_data_for_record(record, step)
+            cache_record_values(step, record)
+            @stats[:processed_records] += 1
+            update_progress if @stats[:processed_records] % 100 == 0
+          end
+        else
+          records.find_each do |record|
+            csv << row_data_for_record(record, step)
+            cache_record_values(step, record)
+            @stats[:processed_records] += 1
+            update_progress if @stats[:processed_records] % 100 == 0
+          end
         end
       end
     rescue StandardError => e
@@ -67,12 +82,44 @@ module Exports
     end
 
     def get_records_for_step(step, model_class)
-      if step.filter_query.present?
-        # Safely evaluate the filter query
-        model_class.instance_eval(step.filter_query)
+      # Start with base query from filter_query or all records
+      base_query = if step.filter_query.present?
+        # Safely evaluate the filter query with parameter substitution
+        query = step.filter_query.strip
+        # Substitute placeholders with actual values
+        query = substitute_filter_params(query)
+        # Remove leading dot if present (e.g., '.where(...)' becomes 'where(...)')
+        query = query.sub(/^\./, '')
+        model_class.instance_eval(query)
       else
         model_class.all
       end
+
+      # Apply dependee filtering if this step depends on another
+      apply_dependee_filter(step, base_query, model_class)
+    end
+
+    def substitute_filter_params(query)
+      result = query.dup
+
+      # Substitute placeholders with actual values
+      unless execution.filter_params.blank?
+        execution.filter_params.each do |key, value|
+          # Replace {{key}} with the actual value
+          # Note: The placeholder should be inside quotes in the query template
+          # e.g., where("created_at < ?", "{{cutoff_date}}")
+          result.gsub!("{{#{key}}}", value.to_s)
+        end
+      end
+
+      # Check for any remaining unsubstituted placeholders
+      remaining_placeholders = result.scan(/\{\{(\w+)\}\}/).flatten
+      if remaining_placeholders.any?
+        raise "Filter query contains unsubstituted placeholders: #{remaining_placeholders.join(', ')}. " \
+              "Please provide values for these parameters before starting the export."
+      end
+
+      result
     end
 
     def headers_for_step(step, model_class)
@@ -196,6 +243,83 @@ module Exports
           stats: @stats
         }
       )
+    end
+
+    # Initialize cache for a step by looking at what dependent steps need
+    def initialize_cache_for_step(step, model_class)
+      # Find all steps that depend on this step
+      dependent_steps = migration_plan.migration_steps.where(dependee_id: step.id)
+
+      # Determine which columns to cache
+      columns_to_cache = Set.new
+
+      dependent_steps.each do |dep_step|
+        next if dep_step.dependee_attribute_mapping.blank?
+
+        # Extract the values from dependee_attribute_mapping
+        # Format: { "company_id" => "id", "manager_id" => "email" }
+        dep_step.dependee_attribute_mapping.each_value do |dependee_column|
+          columns_to_cache.add(dependee_column)
+        end
+      end
+
+      # Initialize cache structure for this step
+      if columns_to_cache.any?
+        @exported_ids_cache[step.id] = {}
+        columns_to_cache.each do |col|
+          @exported_ids_cache[step.id][col] = []
+        end
+      end
+    end
+
+    # Cache specific column values from a record
+    def cache_record_values(step, record)
+      return unless @exported_ids_cache[step.id].present?
+
+      @exported_ids_cache[step.id].each_key do |column_name|
+        value = record.send(column_name)
+        @exported_ids_cache[step.id][column_name] << value if value.present?
+      end
+    end
+
+    # Apply dependee filtering to the query
+    def apply_dependee_filter(step, base_query, model_class)
+      # If this step has no dependee, return the base query as is
+      return base_query unless step.dependee_id.present?
+
+      # Get the dependee step
+      dependee_step = migration_plan.migration_steps.find_by(id: step.dependee_id)
+      return base_query unless dependee_step.present?
+
+      # Check if dependee_attribute_mapping is configured
+      return base_query if step.dependee_attribute_mapping.blank?
+
+      # Check if we have cached values for the dependee step
+      cached_values = @exported_ids_cache[dependee_step.id]
+      return base_query unless cached_values.present?
+
+      # Build where conditions based on the mapping
+      # Format: { "company_id" => "id" } means filter current step's company_id
+      # using the cached "id" values from dependee step
+      conditions = {}
+
+      step.dependee_attribute_mapping.each do |local_column, dependee_column|
+        # Get the cached values for the dependee column
+        values = cached_values[dependee_column]
+
+        if values.present? && values.any?
+          conditions[local_column] = values
+        else
+          Rails.logger.warn "No cached values found for #{dependee_step.source_model_name}.#{dependee_column}"
+        end
+      end
+
+      # Apply the filter if we have conditions
+      if conditions.present?
+        base_query.where(conditions)
+      else
+        base_query
+      end
     end
   end
 end

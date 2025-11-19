@@ -18,6 +18,34 @@
             </div>
           </div>
 
+          <% if @filter_params.any? %>
+            <hr>
+            <h6>📝 Filter Parameters <small class="text-muted">(Optional)</small></h6>
+            <p class="text-muted small mb-3">
+              Update filter parameters if needed. Leave blank to use values from the last export.
+            </p>
+
+            <% @filter_params.each do |param_name, _| %>
+              <% default_value = @last_export&.filter_params&.dig(param_name) %>
+              <div class="mb-3">
+                <%= label_tag "filter_params[#{param_name}]", param_name.humanize, class: "form-label" %>
+                <%= text_field_tag "filter_params[#{param_name}]", default_value,
+                    class: "form-control",
+                    placeholder: default_value.present? ? "Default: #{default_value}" : "Enter value for {{#{param_name}}}" %>
+                <% if default_value.present? %>
+                  <div class="form-text">
+                    Last export used: <code><%= default_value %></code>
+                  </div>
+                <% else %>
+                  <div class="form-text">
+                    This will replace <code>{{#{param_name}}}</code> in filter queries.
+                  </div>
+                <% end %>
+              </div>
+            <% end %>
+            <hr>
+          <% end %>
+
           <div class="alert alert-warning">
             <h6>⚠️ Important Notes:</h6>
             <ul class="mb-0">

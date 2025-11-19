@@ -4,6 +4,8 @@ module DataMigration
 
     def new
       authorize @migration_plan, :execute?
+      @filter_params = extract_placeholders_from_plan
+      @last_export = @migration_plan.migration_executions.export.completed.order(created_at: :desc).first
     end
 
     def create
@@ -19,12 +21,16 @@ module DataMigration
       # Save uploaded file to tmp directory
       file_path = save_uploaded_file(uploaded_file)
 
+      # Use provided filter params or default to empty hash
+      filter_params = params[:filter_params].present? ? params[:filter_params] : {}
+
       execution = MigrationExecution.create!(
         migration_plan: @migration_plan,
         user: current_user,
         execution_type: :import,
         status: :pending,
-        file_path: file_path
+        file_path: file_path,
+        filter_params: filter_params
       )
 
       ImportJob.perform_later(execution.id)
@@ -36,6 +42,19 @@ module DataMigration
 
     def set_migration_plan
       @migration_plan = MigrationPlan.find(params[:migration_plan_id])
+    end
+
+    def extract_placeholders_from_plan
+      placeholders = {}
+      @migration_plan.migration_steps.each do |step|
+        next if step.filter_query.blank?
+
+        # Extract placeholders like {{param_name}} from filter query
+        step.filter_query.scan(/\{\{(\w+)\}\}/).flatten.each do |param|
+          placeholders[param] = nil
+        end
+      end
+      placeholders
     end
 
     def save_uploaded_file(uploaded_file)

@@ -5,10 +5,8 @@
   </div>
   <div class="btn-group">
     <% if policy(@migration_plan).execute? %>
-      <%= button_to "Export", migration_plan_export_path(@migration_plan),
-          method: :post,
-          class: "btn btn-success",
-          data: { confirm: "Start export for #{@migration_plan.name}?" } %>
+      <%= link_to "Export", migration_plan_new_export_path(@migration_plan),
+          class: "btn btn-success" %>
       <%= link_to "Import", migration_plan_new_import_path(@migration_plan),
           class: "btn btn-info" %>
     <% end %>

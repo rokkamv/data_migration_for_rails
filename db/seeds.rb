@@ -1,98 +1,114 @@
-# This file should ensure the existence of records required to run the application in every environment (production,
-# development, test). The code here should be idempotent so that it can be executed at any point in every environment.
-# The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
-
-puts "🌱 Seeding database..."
-puts
-
-# Check if admin user already exists
-existing_admin = User.find_by(role: :admin)
-
-if existing_admin
-  puts "✓ Admin user already exists: #{existing_admin.email}"
-  puts "  No changes made."
-else
-  # Get admin credentials
-  admin_email = ENV['ADMIN_EMAIL']
-  admin_password = ENV['ADMIN_PASSWORD']
-
-  # Prompt for email if not provided
-  if admin_email.blank?
-    print "Enter admin email address: "
-    admin_email = $stdin.gets.chomp
-  end
-
-  # Prompt for password if not provided
-  if admin_password.blank?
-    print "Enter admin password (min 6 characters): "
-    admin_password = $stdin.gets.chomp
-
-    print "Confirm admin password: "
-    password_confirmation = $stdin.gets.chomp
-
-    unless admin_password == password_confirmation
-      puts "❌ Passwords do not match. Aborting."
-      exit(1)
-    end
-
-    if admin_password.length < 6
-      puts "❌ Password must be at least 6 characters. Aborting."
-      exit(1)
-    end
-  end
-
-  # Create admin user
-  admin = User.new(
-    email: admin_email,
-    password: admin_password,
-    password_confirmation: admin_password,
+# Create initial admin user for Data Migration engine
+unless DataMigrationUser.exists?(email: 'admin@datamigration.local')
+  admin_user = DataMigrationUser.create!(
+    name: 'Administrator',
+    email: 'admin@datamigration.local',
+    password: 'password',
+    password_confirmation: 'password',
     role: :admin
   )
 
-  admin.skip_confirmation! # Skip email verification
-
-  if admin.save
-    puts
-    puts "✅ Admin user created successfully!"
-    puts "   Email: #{admin_email}"
-    puts "   Role: Admin"
-    puts
-    puts "⚠️  You can now login with these credentials."
-  else
-    puts
-    puts "❌ Failed to create admin user:"
-    admin.errors.full_messages.each do |error|
-      puts "   - #{error}"
-    end
-    exit(1)
-  end
+  puts "✅ Created admin user:"
+  puts "   Email: admin@datamigration.local"
+  puts "   Password: password"
+  puts "   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY IN PRODUCTION!"
+else
+  admin_user = DataMigrationUser.find_by(email: 'admin@datamigration.local')
+  puts "ℹ️  Admin user already exists"
 end
 
-# Create sample users for development environment
-if Rails.env.development? && !User.exists?(email: 'operator@example.com')
-  puts
-  puts "Creating sample users for development..."
+# Create test MigrationPlan and MigrationSteps
+if admin_user && MigrationPlan.count == 0
+  puts "\n📋 Creating test migration plans..."
 
-  operator = User.new(
-    email: 'operator@example.com',
-    password: 'Operator123!',
-    password_confirmation: 'Operator123!',
-    role: :operator
+  # Plan 1: Company Migration (simple, no dependencies)
+  company_plan = MigrationPlan.create!(
+    name: 'Company Migration',
+    description: 'Migrate all companies with basic filtering',
+    user: admin_user
   )
-  operator.skip_confirmation!
-  operator.save!
-  puts "✓ Created operator@example.com (password: Operator123!)"
 
-  viewer = User.new(
-    email: 'viewer@example.com',
-    password: 'Viewer123!',
-    password_confirmation: 'Viewer123!',
-    role: :viewer
+  MigrationStep.create!(
+    migration_plan: company_plan,
+    source_model_name: 'Company',
+    sequence: 1,
+    filter_query: '',
+    column_overrides: {}.to_json
   )
-  viewer.skip_confirmation!
-  viewer.save!
-  puts "✓ Created viewer@example.com (password: Viewer123!)"
+
+  puts "  ✅ Created 'Company Migration' plan with 1 step"
+
+  # Plan 2: Employee Migration (with dependencies)
+  employee_plan = MigrationPlan.create!(
+    name: 'Employee Migration with Dependencies',
+    description: 'Migrate employees with department associations',
+    user: admin_user
+  )
+
+  # Step 1: Migrate departments first
+  department_step = MigrationStep.create!(
+    migration_plan: employee_plan,
+    source_model_name: 'Department',
+    sequence: 1,
+    filter_query: 'where(id: Employee.select(:department_id).distinct)',
+    column_overrides: {}.to_json
+  )
+
+  # Step 2: Migrate employees (depends on departments)
+  employee_step = MigrationStep.create!(
+    migration_plan: employee_plan,
+    source_model_name: 'Employee',
+    sequence: 2,
+    dependee_id: department_step.id,
+    dependee_attribute_mapping: { department_id: 'id' }.to_json,
+    filter_query: '',
+    column_overrides: {}.to_json,
+    association_overrides: { department_id: 'MAPPED' }.to_json
+  )
+
+  puts "  ✅ Created 'Employee Migration with Dependencies' plan with 2 steps"
+
+  # Plan 3: Complex Multi-Step Migration
+  complex_plan = MigrationPlan.create!(
+    name: 'Complex Multi-Model Migration',
+    description: 'Full migration with multiple dependencies and associations',
+    user: admin_user
+  )
+
+  # Step 1: Companies
+  companies_step = MigrationStep.create!(
+    migration_plan: complex_plan,
+    source_model_name: 'Company',
+    sequence: 1,
+    filter_query: 'where("created_at > ?", "2024-01-01")',
+    column_overrides: {}.to_json
+  )
+
+  # Step 2: Departments
+  departments_step = MigrationStep.create!(
+    migration_plan: complex_plan,
+    source_model_name: 'Department',
+    sequence: 2,
+    filter_query: '',
+    column_overrides: {}.to_json
+  )
+
+  # Step 3: Employees (depends on departments)
+  employees_step = MigrationStep.create!(
+    migration_plan: complex_plan,
+    source_model_name: 'Employee',
+    sequence: 3,
+    dependee_id: departments_step.id,
+    dependee_attribute_mapping: { department_id: 'id' }.to_json,
+    filter_query: '',
+    association_overrides: { department_id: 'MAPPED' }.to_json
+  )
+
+  puts "  ✅ Created 'Complex Multi-Model Migration' plan with 3 steps"
+
+  puts "\n✅ Test migration plans created successfully!"
+  puts "   Total plans: #{MigrationPlan.count}"
+  puts "   Total steps: #{MigrationStep.count}"
+elsif MigrationPlan.count > 0
+  puts "\nℹ️  Migration plans already exist (#{MigrationPlan.count} plans, #{MigrationStep.count} steps)"
 end
-
-puts
-puts "🎉 Seeding completed!"

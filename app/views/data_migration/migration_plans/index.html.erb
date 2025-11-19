@@ -44,10 +44,8 @@
                 <%= link_to "View", plan, class: "btn btn-outline-primary" %>
 
                 <% if policy(plan).execute? %>
-                  <%= button_to "Export", migration_plan_export_path(plan),
-                      method: :post,
-                      class: "btn btn-outline-success",
-                      data: { confirm: "Start export for #{plan.name}?" } %>
+                  <%= link_to "Export", migration_plan_new_export_path(plan),
+                      class: "btn btn-outline-success" %>
 
                   <%= link_to "Import", migration_plan_new_import_path(plan),
                       class: "btn btn-outline-info" %>

@@ -88,8 +88,8 @@ module Imports
       # Build attributes hash from CSV row
       attributes = build_attributes(row, step, model_class)
 
-      # Update foreign key associations
-      update_foreign_keys(attributes, step)
+      # Update foreign key associations (pass CSV row for association attribute values)
+      update_foreign_keys(attributes, step, row)
 
       # Find or create record
       existing_record = find_existing_record(attributes, step, model_class)
@@ -114,28 +114,92 @@ module Imports
       attributes
     end
 
-    def update_foreign_keys(attributes, step)
+    def update_foreign_keys(attributes, step, csv_row)
       return unless step.association_overrides.present?
 
       step.association_overrides.each do |fk_column, mapping_info|
         next unless attributes[fk_column].present?
 
-        old_id = attributes[fk_column].to_i
-        target_model = mapping_info['model']
-        lookup_attributes = mapping_info['lookup_attributes']
-
-        # Find the new ID based on lookup attributes
-        new_id = find_mapped_id(old_id, target_model, lookup_attributes)
-        attributes[fk_column] = new_id if new_id
+        # Check if this is a polymorphic association
+        if mapping_info['polymorphic'] == true
+          handle_polymorphic_foreign_key(attributes, fk_column, mapping_info, csv_row)
+        else
+          handle_regular_foreign_key(attributes, fk_column, mapping_info, csv_row)
+        end
       end
     end
 
-    def find_mapped_id(old_id, target_model, lookup_attributes)
-      # Check if we've already mapped this ID
+    def handle_regular_foreign_key(attributes, fk_column, mapping_info, csv_row)
+      old_id = attributes[fk_column].to_i
+      target_model = mapping_info['model']
+      lookup_attributes = mapping_info['lookup_attributes']
+
+      # Find the new ID based on lookup attributes
+      new_id = find_mapped_id(old_id, target_model, lookup_attributes, csv_row)
+      attributes[fk_column] = new_id if new_id
+    end
+
+    def handle_polymorphic_foreign_key(attributes, fk_column, mapping_info, csv_row)
+      type_column = mapping_info['type_column']
+
+      # Get the polymorphic type from the attributes
+      polymorphic_type = attributes[type_column]
+      return unless polymorphic_type.present?
+
+      # Get the lookup attributes for this specific type
+      lookup_attributes_by_type = mapping_info['lookup_attributes']
+      return unless lookup_attributes_by_type.is_a?(Hash)
+
+      lookup_attributes = lookup_attributes_by_type[polymorphic_type]
+      return unless lookup_attributes.present?
+
+      # Find the new ID based on the polymorphic type and lookup attributes
+      old_id = attributes[fk_column].to_i
+      new_id = find_mapped_id(old_id, polymorphic_type, lookup_attributes, csv_row)
+      attributes[fk_column] = new_id if new_id
+    end
+
+    def find_mapped_id(old_id, target_model, lookup_attributes, csv_row)
+      # Check if we've already mapped this ID (cache for performance)
       mapping_key = "#{target_model}_#{old_id}"
       return @id_mapping[mapping_key] if @id_mapping.key?(mapping_key)
 
-      # For now, return old_id (will be enhanced with lookup logic later)
+      # Build conditions hash from CSV row using lookup attributes
+      # For association_overrides, the association name would be something like 'company'
+      # and CSV columns would be like 'company.name', 'company.code'
+      conditions = {}
+
+      # Determine association name from the target model
+      # e.g., "Company" -> "company", "Project" -> "project"
+      association_name = target_model.underscore
+
+      Array(lookup_attributes).each do |attr|
+        # Look for CSV column like "company.name"
+        csv_column = "#{association_name}.#{attr}"
+        if csv_row.key?(csv_column) && csv_row[csv_column].present?
+          conditions[attr] = csv_row[csv_column]
+        end
+      end
+
+      # If we have conditions, query the database
+      if conditions.present?
+        begin
+          model_class = target_model.constantize
+          found_record = model_class.find_by(conditions)
+
+          if found_record
+            # Cache this mapping for future lookups
+            @id_mapping[mapping_key] = found_record.id
+            return found_record.id
+          else
+            Rails.logger.warn "Could not find #{target_model} with #{conditions.inspect} for old_id #{old_id}"
+          end
+        rescue NameError => e
+          Rails.logger.error "Model #{target_model} not found: #{e.message}"
+        end
+      end
+
+      # Fallback: return old_id (might work if IDs are the same in both DBs)
       old_id
     end
 

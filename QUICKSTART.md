@@ -1,34 +1,58 @@
-# Quick Start Guide
+# Quick Start Guide - Rails Engine
 
-Get your Data Migration Tool up and running in 5 minutes!
+Get the Data Migration engine installed and running in your Rails app in 5 minutes!
 
-## 1. Prerequisites Check
+## Prerequisites
 
-```bash
-# Check Ruby version (should be 3.0.0)
-ruby -v
+- Existing Rails application (Rails 7.0+)
+- Ruby 3.0+
+- Redis installed and running
 
-# Check PostgreSQL is running
-psql --version
+## Installation (4 Steps)
 
-# Check Redis is installed
-redis-cli --version
+### 1. Add to Gemfile
+
+```ruby
+gem 'data_migration', path: '../data_migration_for_rails'
+# Or: gem 'data_migration', git: 'https://github.com/rokkamv/data_migration_for_rails.git'
 ```
 
-## 2. Installation (3 commands)
-
 ```bash
-# Install dependencies
 bundle install
-
-# Setup database
-bundle exec rails db:create db:migrate
-
-# Create admin user (will prompt for email/password)
-bundle exec rails db:seed
 ```
 
-## 3. Start Services (3 terminals)
+### 2. Install Migrations
+
+```bash
+bin/rails data_migration:install:migrations
+bin/rails db:migrate
+```
+
+### 3. Seed Initial Admin User
+
+```bash
+bin/rails db:seed
+```
+
+This creates an admin user:
+- **Email:** admin@datamigration.local
+- **Password:** password
+
+### 4. Mount Engine
+
+In `config/routes.rb`:
+
+```ruby
+Rails.application.routes.draw do
+  mount DataMigration::Engine, at: "/data_migration"
+end
+```
+
+---
+
+## Start Services
+
+Ensure Redis and Sidekiq are running:
 
 **Terminal 1 - Redis:**
 ```bash
@@ -40,89 +64,143 @@ redis-server
 bundle exec sidekiq
 ```
 
-**Terminal 3 - Rails:**
+**Terminal 3 - Rails Server:**
 ```bash
-bundle exec rails server
+bin/rails server
 ```
-
-## 4. Access Application
-
-Open browser: **http://localhost:3000**
-
-Login with the admin credentials you created.
 
 ---
 
-## First Migration in 2 Minutes
+## Access the Engine
 
-### Create a Plan
+Open browser: **http://localhost:3000/data_migration**
+
+Login with:
+- **Email:** admin@datamigration.local
+- **Password:** password
+
+**Change the password immediately** via the user dropdown menu > Change Password.
+
+---
+
+## First Migration in 3 Minutes
+
+### Step 1: Create a Migration Plan
+
 1. Click **"New Migration Plan"**
-2. Name: "Test Migration"
-3. Click **"Create Migration Plan"**
+2. Name: `Test Migration`
+3. Description: `Testing export/import`
+4. Click **"Create Migration Plan"**
 
-### Add a Step
-1. Click **"Add Step"**
-2. Model Name: `User` (or any model in your app)
-3. Execution Order: `1`
-4. Click **"Create Step"**
+### Step 2: Add a Migration Step
 
-### Export
-1. Click **"Export"** button
-2. Wait for completion (check execution page)
-3. Click **"Download Export Archive"**
+1. Click **"Add Migration Step"**
+2. Configure:
+   - **Model Name**: Any model from your Rails app (e.g., `Company`, `Employee`)
+   - **Sequence**: `1`
+   - **Filter Query** (optional): `limit(10)` (to test with just 10 records)
+3. Click **"Create Migration Step"**
 
-### Import
+### Step 3: Export Data
+
+1. Click **"Export"** button on the migration plan page
+2. Wait for Sidekiq to process the job (check Terminal 2)
+3. Execution page will show progress
+4. When complete, click **"Download Export Archive"**
+
+### Step 4: Import Data (Optional Test)
+
 1. Click **"Import"** button
 2. Upload the `.tar.gz` file you just downloaded
 3. Click **"Start Import"**
-4. Monitor progress!
+4. Monitor progress on the execution page
 
 ---
 
-## Development Users
+## Advanced Configuration
 
-Three users are created automatically in development mode:
+### Export with Association Data
 
-| Email | Password | Role | Permissions |
-|-------|----------|------|-------------|
-| *(your admin email)* | *(your password)* | Admin | Full access |
-| operator@example.com | Operator123! | Operator | Execute exports/imports |
-| viewer@example.com | Viewer123! | Viewer | Read-only |
+Edit your migration step and add Column Overrides:
 
-Test role permissions by logging in as different users!
+```json
+{
+  "company": ["name", "code"],
+  "manager": ["email"]
+}
+```
+
+This exports `company.name`, `company.code`, and `manager.email` alongside the main model data.
+
+### Remap Foreign Keys on Import
+
+Add Association Overrides:
+
+```json
+{
+  "company_id": {
+    "model": "Company",
+    "lookup_attributes": ["code"]
+  }
+}
+```
+
+This remaps the `company_id` foreign key by finding the Company in the target database using the `code` attribute instead of the source ID.
+
+---
+
+## User Management
+
+The engine has independent authentication with three roles:
+
+| Role | Permissions |
+|------|-------------|
+| **Admin** | Full access: manage plans, steps, users, and execute migrations |
+| **Operator** | Can execute exports/imports only |
+| **Viewer** | Read-only access to plans and executions |
+
+**Admin users** can create additional users via the "Users" menu:
+1. Click "Users" in the navbar
+2. Click "New User"
+3. Fill in name, email, password, and role
+4. Click "Create User"
+
+**All users** can change their own passwords via the user dropdown menu > Change Password.
 
 ---
 
 ## Common Issues
 
-**"Can't connect to database"**
-```bash
-# Check PostgreSQL is running
-sudo service postgresql status
-
-# Update config/database.yml with correct credentials
-```
+**"Model not found" error**
+- Ensure the model name exactly matches your ActiveRecord model class name
+- Example: `Company` not `company` or `Companies`
 
 **"Redis connection refused"**
 ```bash
-# Start Redis
 redis-server
 ```
 
 **"Sidekiq not processing jobs"**
 ```bash
-# Make sure Sidekiq is running in a separate terminal
 bundle exec sidekiq
 ```
+
+**Routes not working**
+- Check that the engine is mounted in `config/routes.rb`
+- Verify you're accessing `/data_migration` (or your custom mount path)
+
+**Unauthorized access**
+- Ensure your user has `role: :admin`
+- Check Pundit policies are not blocking access
 
 ---
 
 ## Next Steps
 
-- Read the full [README.md](README.md) for advanced features
-- Configure your migration steps with filters and associations
-- Set up email for production deployments
-- Explore the execution history and audit trails
+- Read [README.md](README.md) for detailed documentation
+- Read [INSTALLATION.md](INSTALLATION.md) for installation details
+- Configure complex migrations with filters and associations
+- Set up background job monitoring
 
 ---
 

@@ -1,14 +1,28 @@
 module DataMigration
   class UsersController < ApplicationController
-    before_action :set_user, only: [:show, :edit, :update, :destroy, :change_role]
+    include DataMigration::PunditAuthorization
+
+    before_action :set_user, only: [:edit, :update, :destroy]
 
     def index
-      @users = policy_scope(User).order(created_at: :desc)
-      authorize User
+      authorize DataMigrationUser
+      @users = policy_scope(DataMigrationUser).ordered_by_email
     end
 
-    def show
-      authorize @user
+    def new
+      authorize DataMigrationUser
+      @user = DataMigrationUser.new
+    end
+
+    def create
+      authorize DataMigrationUser
+      @user = DataMigrationUser.new(user_params)
+
+      if @user.save
+        redirect_to users_path, notice: 'User created successfully.'
+      else
+        render :new, status: :unprocessable_entity
+      end
     end
 
     def edit
@@ -18,8 +32,15 @@ module DataMigration
     def update
       authorize @user
 
-      if @user.update(user_params)
-        redirect_to @user, notice: 'User was successfully updated.'
+      # Remove password if blank
+      if user_params[:password].blank?
+        params_to_update = user_params.except(:password, :password_confirmation)
+      else
+        params_to_update = user_params
+      end
+
+      if @user.update(params_to_update)
+        redirect_to users_path, notice: 'User updated successfully.'
       else
         render :edit, status: :unprocessable_entity
       end
@@ -28,33 +49,21 @@ module DataMigration
     def destroy
       authorize @user
 
-      if @user.migration_executions.any?
-        redirect_to @user, alert: 'Cannot delete user with execution history.'
-      elsif @user.destroy
-        redirect_to users_url, notice: 'User was successfully deleted.'
+      if @user.destroy
+        redirect_to users_path, notice: 'User deleted successfully.'
       else
-        redirect_to @user, alert: 'Failed to delete user.'
-      end
-    end
-
-    def change_role
-      authorize @user
-
-      if @user.update(role: params[:role])
-        redirect_to @user, notice: "User role changed to #{@user.role.titleize}."
-      else
-        redirect_to @user, alert: 'Failed to change user role.'
+        redirect_to users_path, alert: @user.errors.full_messages.join(', ')
       end
     end
 
     private
 
     def set_user
-      @user = User.find(params[:id])
+      @user = DataMigrationUser.find(params[:id])
     end
 
     def user_params
-      params.require(:user).permit(:email)
+      params.require(:user).permit(:name, :email, :password, :password_confirmation, :role)
     end
   end
 end

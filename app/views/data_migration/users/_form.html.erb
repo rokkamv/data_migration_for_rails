@@ -1,0 +1,49 @@
+<%= form_with(model: user, url: user.new_record? ? users_path : user_path(user), local: true) do |form| %>
+  <% if user.errors.any? %>
+    <div class="alert alert-danger">
+      <h4><%= pluralize(user.errors.count, "error") %> prohibited this user from being saved:</h4>
+      <ul class="mb-0">
+        <% user.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="mb-3">
+    <%= form.label :name, class: "form-label" %>
+    <%= form.text_field :name, class: "form-control", required: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :email, class: "form-label" %>
+    <%= form.email_field :email, class: "form-control", required: true %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :password, class: "form-label" %>
+    <%= form.password_field :password, class: "form-control", autocomplete: "new-password" %>
+    <% unless user.new_record? %>
+      <div class="form-text">Leave blank to keep current password</div>
+    <% end %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :password_confirmation, class: "form-label" %>
+    <%= form.password_field :password_confirmation, class: "form-control", autocomplete: "new-password" %>
+  </div>
+
+  <div class="mb-3">
+    <%= form.label :role, class: "form-label" %>
+    <%= form.select :role, DataMigrationUser.roles.keys.map { |role| [role.titleize, role] },
+        {}, { class: "form-select", required: true } %>
+    <div class="form-text">
+      <strong>Admin:</strong> Full access<br>
+      <strong>Operator:</strong> Can execute exports/imports<br>
+      <strong>Viewer:</strong> Read-only access
+    </div>
+  </div>
+
+  <%= form.submit user.new_record? ? "Create User" : "Update User", class: "btn btn-primary" %>
+  <%= link_to "Cancel", users_path, class: "btn btn-secondary" %>
+<% end %>

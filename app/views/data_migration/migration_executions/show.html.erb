@@ -206,6 +206,14 @@
 
           <dt class="col-sm-5">User:</dt>
           <dd class="col-sm-7"><%= @execution.user.email %></dd>
+
+          <% if @execution.filter_params.present? && @execution.filter_params.any? %>
+            <dt class="col-sm-12 mt-3 mb-2 text-primary">Filter Parameters:</dt>
+            <% @execution.filter_params.each do |key, value| %>
+              <dt class="col-sm-5 small">{{<%= key %>}}:</dt>
+              <dd class="col-sm-7 small"><code><%= value %></code></dd>
+            <% end %>
+          <% end %>
         </dl>
       </div>
     </div>

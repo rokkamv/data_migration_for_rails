@@ -1,33 +1,49 @@
 DataMigration::Engine.routes.draw do
-  # Devise routes (at engine root level)
-  devise_for :users, class_name: "User"
+  # Devise routes for DataMigrationUser
+  devise_for :users, class_name: 'DataMigrationUser',
+             module: :devise,
+             path: '',
+             path_names: {
+               sign_in: 'login',
+               sign_out: 'logout'
+             },
+             skip: [:registrations]
 
-  # All other routes under data_migration module
-  scope module: 'data_migration' do
-    # Root path
-    root "migration_plans#index"
+  # Define root path with devise_scope
+  devise_scope :user do
+    root to: 'devise/sessions#new'
 
-    # Migration Plans and Steps
-    resources :migration_plans do
-      resources :migration_steps
+    # Registration routes for password changes only (edit/update)
+    resource :registration,
+             only: [:edit, :update],
+             path: 'users',
+             path_names: { edit: 'password/edit' },
+             controller: 'devise/registrations',
+             as: :user_registration
+  end
 
-      # Export and Import operations for a specific plan
-      post 'export', to: 'exports#create', as: :export
-      get 'import/new', to: 'imports#new', as: :new_import
-      post 'import', to: 'imports#create', as: :import
-    end
-
-    # Migration Executions (history and monitoring)
-    resources :migration_executions, only: [:index, :show] do
-      member do
-        get :download
-      end
-    end
+  # Authenticated routes (require login)
+  authenticate :user do
+    get '/dashboard', to: 'data_migration/migration_plans#index', as: :authenticated_root
 
     # User management (admin only)
-    resources :users, only: [:index, :show, :edit, :update, :destroy] do
+    resources :users, except: [:show], controller: 'data_migration/users'
+
+    # Migration Plans and Steps
+    resources :migration_plans, controller: 'data_migration/migration_plans' do
+      resources :migration_steps, except: [:index], controller: 'data_migration/migration_steps'
+
+      get 'export/new', to: 'data_migration/exports#new', as: :new_export
+      post 'export', to: 'data_migration/exports#create', as: :export
+
+      get 'import/new', to: 'data_migration/imports#new', as: :new_import
+      post 'import', to: 'data_migration/imports#create', as: :import
+    end
+
+    # Migration Executions
+    resources :migration_executions, only: [:index, :show], controller: 'data_migration/migration_executions' do
       member do
-        patch :change_role
+        get :download
       end
     end
   end

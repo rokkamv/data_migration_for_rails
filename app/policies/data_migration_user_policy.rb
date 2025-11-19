@@ -1,4 +1,4 @@
-class UserPolicy < ApplicationPolicy
+class DataMigrationUserPolicy < ApplicationPolicy
   def index?
     user.can_manage_users?
   end

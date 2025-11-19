@@ -1,5 +1,7 @@
 module DataMigration
   class MigrationPlansController < ApplicationController
+    include DataMigration::PunditAuthorization
+
     before_action :set_migration_plan, only: %i[show edit update destroy]
 
     def index

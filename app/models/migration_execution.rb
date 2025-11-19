@@ -1,10 +1,7 @@
 class MigrationExecution < ApplicationRecord
-  # Serialization
-  serialize :stats, coder: JSON
-
   # Associations
   belongs_to :migration_plan
-  belongs_to :user
+  belongs_to :user, class_name: 'DataMigrationUser'
   has_many :migration_records, dependent: :destroy
 
   # Enums
@@ -26,11 +23,13 @@ class MigrationExecution < ApplicationRecord
   # Instance methods
   def duration
     return nil unless started_at && completed_at
+
     completed_at - started_at
   end
 
   def progress_percentage
     return 0 if stats.blank? || stats['total'].to_i.zero?
+
     ((stats['processed'].to_f / stats['total'].to_f) * 100).round(2)
   end
 
@@ -38,9 +37,55 @@ class MigrationExecution < ApplicationRecord
     "#{execution_type.titleize} - #{migration_plan.name}"
   end
 
+  # Custom getter for filter_params
+  def filter_params
+    value = read_attribute(:filter_params)
+    return {} if value.blank?
+    return value if value.is_a?(Hash)
+
+    JSON.parse(value)
+  rescue JSON::ParserError => e
+    Rails.logger.error "Failed to parse filter_params for MigrationExecution #{id}: #{e.message}"
+    {}
+  end
+
+  # Custom setter for filter_params
+  def filter_params=(value)
+    if value.is_a?(String)
+      write_attribute(:filter_params, value)
+    elsif value.is_a?(Hash)
+      write_attribute(:filter_params, value.to_json)
+    else
+      write_attribute(:filter_params, {}.to_json)
+    end
+  end
+
+  # Custom getter for stats
+  def stats
+    value = read_attribute(:stats)
+    return {} if value.blank?
+    return value if value.is_a?(Hash)
+
+    JSON.parse(value)
+  rescue JSON::ParserError => e
+    Rails.logger.error "Failed to parse stats for MigrationExecution #{id}: #{e.message}"
+    {}
+  end
+
+  # Custom setter for stats
+  def stats=(value)
+    if value.is_a?(String)
+      write_attribute(:stats, value)
+    elsif value.is_a?(Hash)
+      write_attribute(:stats, value.to_json)
+    else
+      write_attribute(:stats, {}.to_json)
+    end
+  end
+
   private
 
   def set_defaults
-    self.stats ||= {}
+    # Defaults are handled by getters
   end
 end

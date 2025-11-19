@@ -2,7 +2,7 @@ class CreateMigrationExecutions < ActiveRecord::Migration[7.1]
   def change
     create_table :migration_executions do |t|
       t.references :migration_plan, null: false, foreign_key: true
-      t.references :user, null: false, foreign_key: true
+      # user_id will be added by AddUserForeignKeys migration
       t.integer :execution_type, null: false
       t.integer :status, null: false, default: 0
       t.datetime :started_at

@@ -42,15 +42,33 @@ bundle exec rails db:migrate
 ```
 
 This creates the following tables in your database:
-- `users` - Migration tool users (separate from your app's users)
-- `migration_plans`
-- `migration_steps`
-- `migration_executions`
-- `migration_records`
+- `data_migration_users` - Independent user authentication for the engine
+- `migration_plans` - Container for migration workflows
+- `migration_steps` - Individual model export/import configurations
+- `migration_executions` - Audit trail for each export/import run
+- `migration_records` - Record-level audit for each migrated item
+
+**Note:** The engine has its own independent authentication system and does not use your application's User model.
 
 ---
 
-## Step 4: Mount Routes
+## Step 4: Seed Initial Admin User
+
+Create the initial admin user:
+
+```bash
+bundle exec rails db:seed
+```
+
+This creates an admin user:
+- **Email:** admin@datamigration.local
+- **Password:** password
+
+**IMPORTANT:** Change this password immediately after first login!
+
+---
+
+## Step 5: Mount Routes
 
 In `config/routes.rb`:
 
@@ -66,18 +84,6 @@ end
 
 ---
 
-## Step 5: Create Admin User
-
-Run the seed task:
-
-```bash
-bundle exec rails db:seed
-```
-
-This will prompt you for admin credentials.
-
----
-
 ## Step 6: Access the Tool
 
 Start your Rails server:
@@ -88,7 +94,11 @@ bundle exec rails server
 
 Navigate to: **http://localhost:3000/data_migration**
 
-Login with the admin credentials you created.
+Login with:
+- **Email:** admin@datamigration.local
+- **Password:** password
+
+After logging in, go to "Users" menu to create additional users or change your password.
 
 ---
 
@@ -100,8 +110,14 @@ The engine runs **inside your Rails app** and has direct access to:
 - ✅ Your app's database connection
 - ✅ All associations and validations
 
+### Independent Authentication
+The engine maintains its own authentication system:
+- ✅ Separate `data_migration_users` table (isolated from host app)
+- ✅ Role-based access control (Admin, Operator, Viewer)
+- ✅ No dependencies on host application's User model
+
 ### Separate Tables
-The migration tool uses its own tables (users, migration_plans, etc.) which are separate from your app's data.
+The migration tool uses its own tables (migration_plans, migration_steps, etc.) which are completely separate from your app's data.
 
 ### Services
 When you export/import:

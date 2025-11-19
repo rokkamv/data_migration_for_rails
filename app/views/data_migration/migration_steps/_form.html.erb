@@ -1,4 +1,4 @@
-<%= form_with(model: [migration_plan, migration_step], local: true, class: "needs-validation") do |form| %>
+<%= form_with(model: [migration_plan, migration_step], local: true, class: "needs-validation", id: "migration-step-form") do |form| %>
   <% if migration_step.errors.any? %>
     <div class="alert alert-danger">
       <h4><%= pluralize(migration_step.errors.count, "error") %> prohibited this step from being saved:</h4>
@@ -23,26 +23,74 @@
         <%= form.text_area :filter_query, class: "form-control font-monospace", rows: 3, placeholder: "e.g., where(active: true).where('created_at > ?', 1.year.ago)" %>
         <div class="form-text">
           Optional ActiveRecord query to filter which records to include. Leave blank to migrate all records.
-          <br><strong>Example:</strong> <code>where(status: 'active')</code>
+          <br><strong>Example:</strong> <code>where(status: "active")</code>
+          <br><strong>With placeholder:</strong> <code>where(status: "{{status_value}}")</code> or <code>where("created_at > ?", "{{cutoff_date}}")</code>
+          <br><small class="text-muted">Note: Placeholders must be inside string quotes.</small>
         </div>
       </div>
 
+      <!-- Column Overrides JSON Field -->
       <div class="mb-3">
-        <%= form.label :column_overrides, "Column Overrides (JSON)", class: "form-label" %>
-        <%= form.text_area :column_overrides, class: "form-control font-monospace", rows: 5, placeholder: '{"association_name": ["attribute1", "attribute2"]}' %>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <%= form.label :column_overrides, "Column Overrides (JSON)", class: "form-label mb-0" %>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary" onclick="formatJSON('column_overrides')">
+              📋 Format
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="insertTemplate('column_overrides', 'basic')">
+              ➕ Template
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="clearField('column_overrides')">
+              🗑️ Clear
+            </button>
+          </div>
+        </div>
+        <%= form.text_area :column_overrides,
+            value: migration_step.column_overrides.is_a?(Hash) ? JSON.pretty_generate(migration_step.column_overrides) : migration_step.column_overrides,
+            class: "form-control font-monospace json-field",
+            id: "column_overrides",
+            rows: 5,
+            placeholder: '{}',
+            data: { field_type: "column_overrides" } %>
+        <div class="invalid-feedback" id="column_overrides_error"></div>
         <div class="form-text">
-          JSON object mapping associations to their attributes for export.
+          JSON object mapping associations to their attributes for export. Required for Association ID Mappings to work.
           <br><strong>Example:</strong> <code>{"company": ["name", "code"], "role": ["title"]}</code>
+          <br><small class="text-muted">Note: For polymorphic associations like 'commentable', include the lookup attributes here so they're exported to CSV.</small>
         </div>
       </div>
 
+      <!-- Association Overrides JSON Field -->
       <div class="mb-3">
-        <%= form.label :association_overrides, "Association ID Mappings (JSON)", class: "form-label" %>
-        <%= form.text_area :association_overrides, class: "form-control font-monospace", rows: 5, placeholder: '{"company_id": {"model": "Company", "lookup_attributes": ["name"]}}' %>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <%= form.label :association_overrides, "Association ID Mappings (JSON)", class: "form-label mb-0" %>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary" onclick="formatJSON('association_overrides')">
+              📋 Format
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="insertTemplate('association_overrides', 'regular')">
+              ➕ Regular
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="insertTemplate('association_overrides', 'polymorphic')">
+              ➕ Polymorphic
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="clearField('association_overrides')">
+              🗑️ Clear
+            </button>
+          </div>
+        </div>
+        <%= form.text_area :association_overrides,
+            value: migration_step.association_overrides.is_a?(Hash) ? JSON.pretty_generate(migration_step.association_overrides) : migration_step.association_overrides,
+            class: "form-control font-monospace json-field",
+            id: "association_overrides",
+            rows: 8,
+            placeholder: '{}',
+            data: { field_type: "association_overrides" } %>
+        <div class="invalid-feedback" id="association_overrides_error"></div>
         <div class="form-text">
           JSON object for remapping foreign key IDs during import based on lookup attributes.
-          <br><strong>Example:</strong> <code>{"company_id": {"model": "Company", "lookup_attributes": ["code"]}, "manager_id": {"model": "Employee", "lookup_attributes": ["email"]}}</code>
-          <br><small class="text-muted">This remaps IDs by finding records in the target database using the specified lookup attributes instead of using source IDs directly.</small>
+          <br><strong>Regular Association:</strong> <code>{"company_id": {"model": "Company", "lookup_attributes": ["code"]}}</code>
+          <br><strong>Polymorphic:</strong> <code>{"commentable_id": {"polymorphic": true, "type_column": "commentable_type", "lookup_attributes": {"Post": ["title"], "Product": ["sku"]}}}</code>
         </div>
       </div>
     </div>
@@ -56,6 +104,50 @@
         </div>
       </div>
 
+      <div class="mb-3">
+        <%= form.label :dependee_id, "Depends On Step (optional)", class: "form-label" %>
+        <%= form.collection_select :dependee_id,
+            migration_plan.migration_steps.where.not(id: migration_step.id).order(:sequence),
+            :id,
+            ->(step) { "#{step.sequence}. #{step.source_model_name}" },
+            { include_blank: "None - Independent Step" },
+            { class: "form-select" } %>
+        <div class="form-text">
+          Select a parent step if this step's records reference the parent step's records.
+        </div>
+      </div>
+
+      <!-- Dependee Attribute Mapping JSON Field -->
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <%= form.label :dependee_attribute_mapping, "Dependee Attribute Mapping (JSON)", class: "form-label mb-0" %>
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary" onclick="formatJSON('dependee_attribute_mapping')">
+              📋 Format
+            </button>
+            <button type="button" class="btn btn-outline-primary" onclick="insertTemplate('dependee_attribute_mapping', 'basic')">
+              ➕ Template
+            </button>
+            <button type="button" class="btn btn-outline-info" onclick="clearField('dependee_attribute_mapping')">
+              🗑️ Clear
+            </button>
+          </div>
+        </div>
+        <%= form.text_area :dependee_attribute_mapping,
+            value: migration_step.dependee_attribute_mapping.is_a?(Hash) ? JSON.pretty_generate(migration_step.dependee_attribute_mapping) : migration_step.dependee_attribute_mapping,
+            class: "form-control font-monospace json-field",
+            id: "dependee_attribute_mapping",
+            rows: 3,
+            placeholder: '{}',
+            data: { field_type: "dependee_attribute_mapping" } %>
+        <div class="invalid-feedback" id="dependee_attribute_mapping_error"></div>
+        <div class="form-text">
+          Maps this step's columns to the dependee step's columns for filtering during export.
+          <br><strong>Example:</strong> <code>{"company_id": "id"}</code>
+          <br><small class="text-muted">Only export records where company_id matches the IDs exported in the dependee step.</small>
+        </div>
+      </div>
+
       <div class="card bg-light">
         <div class="card-body">
           <h6 class="card-title">💡 Tips</h6>
@@ -63,7 +155,10 @@
             <li>Migrate parent models before child models</li>
             <li>Use filter queries to limit data scope</li>
             <li>Column overrides include association data in exports</li>
+            <li>Use dependee mapping for referential integrity</li>
             <li>Test with small datasets first</li>
+            <li>Click "Format" to prettify JSON</li>
+            <li>Use templates to get started quickly</li>
           </ul>
         </div>
       </div>
@@ -71,6 +166,205 @@
   </div>
 
   <div class="mb-3">
-    <%= form.submit migration_step.new_record? ? "Create Step" : "Update Step", class: "btn btn-primary" %>
+    <%= form.submit migration_step.new_record? ? "Create Step" : "Update Step", class: "btn btn-primary", id: "submit-button" %>
   </div>
 <% end %>
+
+<style>
+  .json-field.is-valid {
+    border-color: #198754 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(.375em + .1875rem) center;
+    background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    padding-right: calc(1.5em + .75rem);
+  }
+
+  .json-field.is-invalid {
+    border-color: #dc3545 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right calc(.375em + .1875rem) center;
+    background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+    padding-right: calc(1.5em + .75rem);
+  }
+
+  .json-field:focus {
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  }
+</style>
+
+<script>
+// JSON Templates
+const templates = {
+  column_overrides: {
+    basic: {
+      "association_name": ["attribute1", "attribute2"],
+      "another_association": ["attribute3"]
+    }
+  },
+  association_overrides: {
+    regular: {
+      "company_id": {
+        "model": "Company",
+        "lookup_attributes": ["code"]
+      },
+      "manager_id": {
+        "model": "Employee",
+        "lookup_attributes": ["email"]
+      }
+    },
+    polymorphic: {
+      "commentable_id": {
+        "polymorphic": true,
+        "type_column": "commentable_type",
+        "lookup_attributes": {
+          "Post": ["title"],
+          "Article": ["title"],
+          "Product": ["name", "sku"]
+        }
+      }
+    }
+  },
+  dependee_attribute_mapping: {
+    basic: {
+      "company_id": "id",
+      "parent_id": "id"
+    }
+  }
+};
+
+// Validate JSON field
+function validateJSON(fieldId) {
+  const field = document.getElementById(fieldId);
+  const errorDiv = document.getElementById(fieldId + '_error');
+  const value = field.value.trim();
+
+  // Empty is valid (optional field)
+  if (value === '' || value === '{}' || value === '[]') {
+    field.classList.remove('is-invalid');
+    field.classList.add('is-valid');
+    errorDiv.textContent = '';
+    return true;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+
+    // Additional validation: must be an object, not array
+    if (Array.isArray(parsed)) {
+      throw new Error('Must be a JSON object {}, not an array []');
+    }
+
+    field.classList.remove('is-invalid');
+    field.classList.add('is-valid');
+    errorDiv.textContent = '';
+    return true;
+  } catch (e) {
+    field.classList.remove('is-valid');
+    field.classList.add('is-invalid');
+    errorDiv.textContent = '⚠️ Invalid JSON: ' + e.message;
+    errorDiv.style.display = 'block';
+    return false;
+  }
+}
+
+// Format JSON with proper indentation
+function formatJSON(fieldId) {
+  const field = document.getElementById(fieldId);
+  const value = field.value.trim();
+
+  if (value === '' || value === '{}' || value === '[]') {
+    field.value = '{}';
+    validateJSON(fieldId);
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    field.value = JSON.stringify(parsed, null, 2);
+    validateJSON(fieldId);
+  } catch (e) {
+    alert('Cannot format: Invalid JSON\n\n' + e.message);
+  }
+}
+
+// Insert template
+function insertTemplate(fieldId, templateType) {
+  const field = document.getElementById(fieldId);
+  const fieldType = field.dataset.fieldType;
+
+  if (templates[fieldType] && templates[fieldType][templateType]) {
+    const template = templates[fieldType][templateType];
+
+    // If field has content, ask for confirmation
+    if (field.value.trim() !== '' && field.value.trim() !== '{}') {
+      if (!confirm('This will replace the existing content. Continue?')) {
+        return;
+      }
+    }
+
+    field.value = JSON.stringify(template, null, 2);
+    validateJSON(fieldId);
+    field.focus();
+  }
+}
+
+// Clear field
+function clearField(fieldId) {
+  const field = document.getElementById(fieldId);
+
+  if (field.value.trim() !== '' && field.value.trim() !== '{}') {
+    if (!confirm('Clear all content in this field?')) {
+      return;
+    }
+  }
+
+  field.value = '{}';
+  field.classList.remove('is-valid', 'is-invalid');
+  document.getElementById(fieldId + '_error').textContent = '';
+}
+
+// Validate all JSON fields on page load and input
+document.addEventListener('DOMContentLoaded', function() {
+  const jsonFields = document.querySelectorAll('.json-field');
+
+  jsonFields.forEach(field => {
+    // Validate on load
+    validateJSON(field.id);
+
+    // Validate on blur
+    field.addEventListener('blur', function() {
+      validateJSON(this.id);
+    });
+
+    // Remove validation styling while typing
+    field.addEventListener('input', function() {
+      this.classList.remove('is-valid', 'is-invalid');
+    });
+  });
+
+  // Validate all fields before form submission
+  const form = document.getElementById('migration-step-form');
+  form.addEventListener('submit', function(e) {
+    let allValid = true;
+
+    jsonFields.forEach(field => {
+      if (!validateJSON(field.id)) {
+        allValid = false;
+      }
+    });
+
+    if (!allValid) {
+      e.preventDefault();
+      alert('Please fix the JSON errors before submitting.');
+      // Scroll to first error
+      const firstError = document.querySelector('.json-field.is-invalid');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstError.focus();
+      }
+    }
+  });
+});
+</script>

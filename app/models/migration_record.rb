@@ -1,7 +1,4 @@
 class MigrationRecord < ApplicationRecord
-  # Serialization
-  serialize :record_changes, coder: JSON
-
   # Associations
   belongs_to :migration_execution
 
@@ -21,6 +18,28 @@ class MigrationRecord < ApplicationRecord
   scope :by_model, ->(model_name) { where(migrated_model_name: model_name) }
   scope :errors_only, -> { where(action: :failed) }
 
+  # Custom getter for record_changes
+  def record_changes
+    value = read_attribute(:record_changes)
+    return {} if value.blank?
+    return value if value.is_a?(Hash)
+    JSON.parse(value)
+  rescue JSON::ParserError => e
+    Rails.logger.error "Failed to parse record_changes for MigrationRecord #{id}: #{e.message}"
+    {}
+  end
+
+  # Custom setter for record_changes
+  def record_changes=(value)
+    if value.is_a?(String)
+      write_attribute(:record_changes, value)
+    elsif value.is_a?(Hash)
+      write_attribute(:record_changes, value.to_json)
+    else
+      write_attribute(:record_changes, {}.to_json)
+    end
+  end
+
   # Instance methods
   def display_name
     "#{migrated_model_name} #{record_identifier}"
@@ -33,6 +52,6 @@ class MigrationRecord < ApplicationRecord
   private
 
   def set_defaults
-    self.record_changes ||= {}
+    # Defaults are handled by getters
   end
 end

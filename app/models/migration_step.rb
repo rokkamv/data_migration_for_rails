@@ -1,14 +1,4 @@
 class MigrationStep < ApplicationRecord
-  # Serialization
-  serialize :dependee_attribute_mapping, coder: JSON
-  serialize :column_overrides, coder: JSON
-  serialize :association_overrides, coder: JSON
-  serialize :included_models, Array, coder: JSON
-  serialize :excluded_models, Array, coder: JSON
-  serialize :model_filters, coder: JSON
-  serialize :association_selections, coder: JSON
-  serialize :polymorphic_associations, coder: JSON
-
   # Associations
   belongs_to :migration_plan
   belongs_to :dependee, class_name: 'MigrationStep', optional: true
@@ -17,12 +7,80 @@ class MigrationStep < ApplicationRecord
   # Validations
   validates :source_model_name, presence: true
   validates :sequence, presence: true, numericality: { only_integer: true }
+  validate :validate_json_field_types
 
   # Callbacks to set defaults
   after_initialize :set_defaults, if: :new_record?
+  before_validation :parse_json_fields
 
   # Scopes
   scope :ordered_by_sequence, -> { order(:sequence) }
+
+  # Custom getter for dependee_attribute_mapping
+  def dependee_attribute_mapping
+    value = read_attribute(:dependee_attribute_mapping)
+    return {} if value.blank?
+    return value if value.is_a?(Hash)
+    JSON.parse(value)
+  rescue JSON::ParserError => e
+    Rails.logger.error "Failed to parse dependee_attribute_mapping for MigrationStep #{id}: #{e.message}"
+    {}
+  end
+
+  # Custom setter for dependee_attribute_mapping
+  def dependee_attribute_mapping=(value)
+    if value.is_a?(String)
+      write_attribute(:dependee_attribute_mapping, value)
+    elsif value.is_a?(Hash)
+      write_attribute(:dependee_attribute_mapping, value.to_json)
+    else
+      write_attribute(:dependee_attribute_mapping, {}.to_json)
+    end
+  end
+
+  # Custom getter for column_overrides
+  def column_overrides
+    value = read_attribute(:column_overrides)
+    return {} if value.blank?
+    return value if value.is_a?(Hash)
+    JSON.parse(value)
+  rescue JSON::ParserError => e
+    Rails.logger.error "Failed to parse column_overrides for MigrationStep #{id}: #{e.message}"
+    {}
+  end
+
+  # Custom setter for column_overrides
+  def column_overrides=(value)
+    if value.is_a?(String)
+      write_attribute(:column_overrides, value)
+    elsif value.is_a?(Hash)
+      write_attribute(:column_overrides, value.to_json)
+    else
+      write_attribute(:column_overrides, {}.to_json)
+    end
+  end
+
+  # Custom getter for association_overrides
+  def association_overrides
+    value = read_attribute(:association_overrides)
+    return {} if value.blank?
+    return value if value.is_a?(Hash)
+    JSON.parse(value)
+  rescue JSON::ParserError => e
+    Rails.logger.error "Failed to parse association_overrides for MigrationStep #{id}: #{e.message}"
+    {}
+  end
+
+  # Custom setter for association_overrides
+  def association_overrides=(value)
+    if value.is_a?(String)
+      write_attribute(:association_overrides, value)
+    elsif value.is_a?(Hash)
+      write_attribute(:association_overrides, value.to_json)
+    else
+      write_attribute(:association_overrides, {}.to_json)
+    end
+  end
 
   private
 
@@ -30,10 +88,51 @@ class MigrationStep < ApplicationRecord
     self.dependee_attribute_mapping ||= {}
     self.column_overrides ||= {}
     self.association_overrides ||= {}
-    self.included_models ||= []
-    self.excluded_models ||= []
-    self.model_filters ||= {}
-    self.association_selections ||= {}
-    self.polymorphic_associations ||= {}
+  end
+
+  def parse_json_fields
+    # Parse JSON string fields into proper objects
+    json_fields = %i[
+      dependee_attribute_mapping
+      column_overrides
+      association_overrides
+    ]
+
+    json_fields.each do |field|
+      value = send(field)
+      next if value.blank?
+
+      # If it's a string, try to parse it as JSON
+      if value.is_a?(String)
+        begin
+          parsed_value = JSON.parse(value)
+          send("#{field}=", parsed_value)
+        rescue JSON::ParserError => e
+          # Add validation error for invalid JSON
+          errors.add(field, "contains invalid JSON: #{e.message}")
+        end
+      end
+    end
+  end
+
+  def validate_json_field_types
+    # Ensure JSON fields are objects (Hash), not arrays
+    json_fields = {
+      dependee_attribute_mapping: 'Dependee Attribute Mapping',
+      column_overrides: 'Column Overrides',
+      association_overrides: 'Association ID Mappings'
+    }
+
+    json_fields.each do |field, label|
+      value = send(field)
+      next if value.blank? || value == {}
+
+      # Check if it's a Hash (JSON object)
+      if value.is_a?(Array)
+        errors.add(field, "#{label} must be a JSON object {}, not an array []")
+      elsif !value.is_a?(Hash)
+        errors.add(field, "#{label} must be a valid JSON object")
+      end
+    end
   end
 end

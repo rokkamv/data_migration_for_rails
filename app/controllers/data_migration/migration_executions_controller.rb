@@ -1,5 +1,7 @@
 module DataMigration
   class MigrationExecutionsController < ApplicationController
+    include DataMigration::PunditAuthorization
+
     before_action :set_execution, only: [:show, :download]
 
     def index

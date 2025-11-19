@@ -1,0 +1,13 @@
+<% if resource.errors.any? %>
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <h6 class="alert-heading">
+      <%= pluralize(resource.errors.count, "error") %> prohibited this from being saved:
+    </h6>
+    <ul class="mb-0">
+      <% resource.errors.full_messages.each do |message| %>
+        <li><%= message %></li>
+      <% end %>
+    </ul>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+<% end %>

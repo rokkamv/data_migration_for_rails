@@ -1,53 +1,37 @@
-<h1 class="mb-4">User Management</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h1>Users</h1>
+  <%= link_to "New User", new_user_path, class: "btn btn-primary" %>
+</div>
 
 <div class="table-responsive">
   <table class="table table-hover">
     <thead class="table-light">
       <tr>
+        <th>Name</th>
         <th>Email</th>
         <th>Role</th>
-        <th>Confirmed</th>
-        <th>Executions</th>
-        <th>Joined</th>
+        <th>Created</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       <% @users.each do |user| %>
         <tr>
+          <td><%= user.name %></td>
+          <td><%= user.email %></td>
           <td>
-            <%= link_to user.email, user, class: "text-decoration-none" %>
-            <% if user.id == current_user.id %>
-              <span class="badge bg-info">You</span>
-            <% end %>
-          </td>
-          <td>
-            <span class="badge bg-<%= user.admin? ? 'danger' : (user.operator? ? 'warning' : 'secondary') %>">
+            <span class="badge bg-<%= user.admin? ? 'danger' : (user.operator? ? 'primary' : 'secondary') %>">
               <%= user.role.titleize %>
             </span>
           </td>
+          <td><%= time_ago_in_words(user.created_at) %> ago</td>
           <td>
-            <% if user.confirmed? %>
-              <span class="text-success">✓ Yes</span>
-            <% else %>
-              <span class="text-warning">⚠ Pending</span>
-            <% end %>
-          </td>
-          <td>
-            <span class="badge bg-secondary"><%= user.migration_executions.count %></span>
-          </td>
-          <td>
-            <small><%= user.created_at.strftime("%Y-%m-%d") %></small>
-          </td>
-          <td>
-            <% if policy(user).show? %>
-              <%= link_to "View", user, class: "btn btn-sm btn-outline-primary" %>
-            <% end %>
-            <% if policy(user).destroy? && user.id != current_user.id %>
-              <%= button_to "Delete", user,
+            <%= link_to "Edit", edit_user_path(user), class: "btn btn-sm btn-outline-warning" %>
+            <% if user != current_user %>
+              <%= button_to "Delete", user_path(user),
                   method: :delete,
                   class: "btn btn-sm btn-outline-danger",
-                  data: { confirm: "Delete #{user.email}?" } %>
+                  data: { confirm: "Are you sure?" } %>
             <% end %>
           </td>
         </tr>
