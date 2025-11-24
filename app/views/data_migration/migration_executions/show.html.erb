@@ -65,7 +65,7 @@
         <% if @execution.stats.present? %>
           <div class="row text-center mt-4">
             <% if @execution.export? %>
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <div class="card">
                   <div class="card-body">
                     <h3 class="text-primary"><%= @execution.stats['processed_records'] || 0 %></h3>
@@ -73,11 +73,19 @@
                   </div>
                 </div>
               </div>
-              <div class="col-md-6">
+              <div class="col-md-4">
                 <div class="card">
                   <div class="card-body">
                     <h3 class="text-info"><%= @execution.stats['completed_steps'] || 0 %></h3>
                     <p class="text-muted mb-0">Steps Completed</p>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="card">
+                  <div class="card-body">
+                    <h3 class="text-success"><%= @execution.stats['processed_attachments'] || 0 %></h3>
+                    <p class="text-muted mb-0">📎 Attachments Exported</p>
                   </div>
                 </div>
               </div>
@@ -116,6 +124,21 @@
               </div>
             <% end %>
           </div>
+
+          <!-- Attachments Row -->
+          <% if (@execution.stats['processed_attachments'] || 0) > 0 %>
+            <div class="row text-center mt-3">
+              <div class="col-md-12">
+                <div class="card bg-light">
+                  <div class="card-body">
+                    <h4 class="text-success mb-0">
+                      📎 <%= @execution.stats['processed_attachments'] || 0 %> Attachments <%= @execution.export? ? 'Exported' : 'Imported' %>
+                    </h4>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% end %>
         <% end %>
 
         <!-- Download Export -->

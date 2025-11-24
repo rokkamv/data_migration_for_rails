@@ -14,8 +14,32 @@
     <div class="col-md-8">
       <div class="mb-3">
         <%= form.label :source_model_name, "Model Name", class: "form-label" %>
-        <%= form.text_field :source_model_name, class: "form-control", placeholder: "e.g., User, Post, Comment", required: true %>
+        <%= form.select :source_model_name,
+            options_for_select(model_registry.keys.sort, migration_step.source_model_name),
+            { include_blank: "Select a model..." },
+            { class: "form-select", required: true, id: "model_selector" } %>
         <div class="form-text">The ActiveRecord model class name to migrate.</div>
+      </div>
+
+      <!-- Model Fields Display (dynamically shown when model is selected) -->
+      <div class="mb-3" id="model-fields-container" style="display: none;">
+        <div class="card">
+          <div class="card-header bg-light">
+            <h6 class="mb-0">📋 <span id="selected-model-name"></span> Fields</h6>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <strong>Database Columns:</strong>
+                <ul id="model-columns-list" class="small mb-0" style="column-count: 2;"></ul>
+              </div>
+              <div class="col-md-6" id="model-attachments-container" style="display: none;">
+                <strong>📎 Attachments:</strong>
+                <ul id="model-attachments-list" class="small mb-0"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="mb-3">
@@ -148,6 +172,22 @@
         </div>
       </div>
 
+      <!-- Attachment Export Mode -->
+      <div class="mb-3" id="attachment-mode-container" style="display: none;">
+        <%= form.label :attachment_export_mode, "Attachment Export Mode", class: "form-label" %>
+        <%= form.select :attachment_export_mode,
+            options_for_select([
+              ['Ignore Attachments', 'ignore'],
+              ['Export as URLs', 'url'],
+              ['Export as Raw Data (compressed)', 'raw_data']
+            ], migration_step.attachment_export_mode),
+            {},
+            { class: "form-select" } %>
+        <div class="form-text">
+          Choose how to handle Active Storage attachments during export.
+        </div>
+      </div>
+
       <div class="card bg-light">
         <div class="card-body">
           <h6 class="card-title">💡 Tips</h6>
@@ -195,6 +235,9 @@
 </style>
 
 <script>
+// Model Registry Data (cached from server)
+const modelRegistry = <%= raw model_registry.to_json %>;
+
 // JSON Templates
 const templates = {
   column_overrides: {
@@ -366,5 +409,65 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
   });
+
+  // Handle model selector change
+  const modelSelector = document.getElementById('model_selector');
+  if (modelSelector) {
+    // Show fields if model is already selected (edit mode)
+    if (modelSelector.value) {
+      displayModelFields(modelSelector.value);
+    }
+
+    modelSelector.addEventListener('change', function() {
+      const modelName = this.value;
+      if (modelName) {
+        displayModelFields(modelName);
+      } else {
+        // Hide fields if no model selected
+        document.getElementById('model-fields-container').style.display = 'none';
+        document.getElementById('attachment-mode-container').style.display = 'none';
+      }
+    });
+  }
 });
+
+// Display model fields and attachments
+function displayModelFields(modelName) {
+  const metadata = modelRegistry[modelName];
+  if (!metadata) return;
+
+  // Update model name display
+  document.getElementById('selected-model-name').textContent = modelName;
+
+  // Display columns
+  const columnsList = document.getElementById('model-columns-list');
+  columnsList.innerHTML = '';
+  metadata.columns.forEach(column => {
+    const li = document.createElement('li');
+    li.innerHTML = `<code>${column.name}</code> <small class="text-muted">(${column.type})</small>`;
+    columnsList.appendChild(li);
+  });
+
+  // Display attachments if any
+  const attachmentsContainer = document.getElementById('model-attachments-container');
+  const attachmentsList = document.getElementById('model-attachments-list');
+  if (metadata.attachments && metadata.attachments.length > 0) {
+    attachmentsList.innerHTML = '';
+    metadata.attachments.forEach(attachment => {
+      const li = document.createElement('li');
+      li.innerHTML = `<code>${attachment.name}</code> <small class="text-muted">(${attachment.type})</small>`;
+      attachmentsList.appendChild(li);
+    });
+    attachmentsContainer.style.display = 'block';
+
+    // Show attachment export mode selector
+    document.getElementById('attachment-mode-container').style.display = 'block';
+  } else {
+    attachmentsContainer.style.display = 'none';
+    document.getElementById('attachment-mode-container').style.display = 'none';
+  }
+
+  // Show the fields container
+  document.getElementById('model-fields-container').style.display = 'block';
+}
 </script>

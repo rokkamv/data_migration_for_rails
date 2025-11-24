@@ -20,9 +20,12 @@ module Imports
         updated: 0,
         skipped: 0,
         failed: 0,
+        total_attachments: 0,
+        processed_attachments: 0,
         errors: []
       }
       @id_mapping = {} # Maps old IDs to new IDs for foreign key updates
+      @temp_dir = nil
     end
 
     def call
@@ -57,6 +60,7 @@ module Imports
     end
 
     def import_all_steps(temp_dir)
+      @temp_dir = temp_dir
       migration_plan.migration_steps.order(:sequence).each do |step|
         import_step(step, temp_dir)
         @stats[:completed_steps] += 1
@@ -228,6 +232,9 @@ module Imports
         if record.update(update_attrs)
           @stats[:updated] += 1
           record_migration_action(step, csv_row, :updated, changes)
+
+          # Import attachments if any
+          import_attachments(record, step, csv_row)
         else
           @stats[:failed] += 1
           record_migration_action(step, csv_row, :failed, {}, record.errors.full_messages.join(', '))
@@ -261,6 +268,9 @@ module Imports
           mapping_key = "#{step.source_model_name}_#{old_id}"
           @id_mapping[mapping_key] = record.id
         end
+
+        # Import attachments if any
+        import_attachments(record, step, csv_row)
       else
         @stats[:failed] += 1
         record_migration_action(step, csv_row, :failed, {}, record.errors.full_messages.join(', '))
@@ -352,6 +362,95 @@ module Imports
           stats: @stats
         }
       )
+    end
+
+    # Import attachments for a record
+    def import_attachments(record, step, csv_row)
+      return if step.ignore?
+
+      model_class = record.class
+      return unless model_class.respond_to?(:reflect_on_all_attachments)
+
+      model_class.reflect_on_all_attachments.each do |attachment_reflection|
+        attachment_name = attachment_reflection.name
+
+        if step.url?
+          # Import from URL
+          url_column = "#{attachment_name}_url"
+          url = csv_row[url_column]
+
+          if url.present?
+            import_attachment_from_url(record, attachment_name, url)
+          end
+        elsif step.raw_data?
+          # Import from raw file
+          path_column = "#{attachment_name}_path"
+          filename_column = "#{attachment_name}_filename"
+          content_type_column = "#{attachment_name}_content_type"
+
+          file_path = csv_row[path_column]
+          filename = csv_row[filename_column]
+          content_type = csv_row[content_type_column]
+
+          if file_path.present? && filename.present?
+            import_attachment_from_file(record, attachment_name, file_path, filename, content_type)
+          end
+        end
+      end
+    rescue => e
+      Rails.logger.error "Failed to import attachments for record #{record.id}: #{e.message}"
+      @stats[:errors] << {
+        step: step.source_model_name,
+        record_id: record.id,
+        error: "Attachment import failed: #{e.message}"
+      }
+    end
+
+    # Import attachment from URL
+    def import_attachment_from_url(record, attachment_name, url)
+      require 'open-uri'
+
+      URI.open(url) do |file|
+        record.send(attachment_name).attach(
+          io: file,
+          filename: File.basename(URI.parse(url).path),
+          content_type: file.content_type
+        )
+        @stats[:processed_attachments] += 1
+      end
+    rescue => e
+      Rails.logger.error "Failed to download attachment from URL #{url}: #{e.message}"
+      @stats[:errors] << {
+        attachment_name: attachment_name,
+        url: url,
+        error: e.message
+      }
+    end
+
+    # Import attachment from extracted file
+    def import_attachment_from_file(record, attachment_name, file_path, filename, content_type)
+      full_path = File.join(@temp_dir, file_path)
+
+      unless File.exist?(full_path)
+        Rails.logger.warn "Attachment file not found: #{full_path}"
+        return
+      end
+
+      File.open(full_path, 'rb') do |file|
+        record.send(attachment_name).attach(
+          io: file,
+          filename: filename,
+          content_type: content_type
+        )
+        @stats[:processed_attachments] += 1
+      end
+    rescue => e
+      Rails.logger.error "Failed to attach file #{full_path}: #{e.message}"
+      @stats[:errors] << {
+        attachment_name: attachment_name,
+        file_path: file_path,
+        error: e.message
+      }
     end
   end
 end

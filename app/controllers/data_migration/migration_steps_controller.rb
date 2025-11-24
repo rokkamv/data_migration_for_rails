@@ -63,7 +63,8 @@ module DataMigration
     def migration_step_params
       params.require(:migration_step).permit(
         :source_model_name, :sequence, :filter_query, :dependee_id, :migration_plan_id,
-        :dependee_attribute_mapping, :column_overrides, :association_overrides
+        :dependee_attribute_mapping, :column_overrides, :association_overrides,
+        :attachment_export_mode, :attachment_fields
       )
     end
   end

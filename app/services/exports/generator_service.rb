@@ -15,9 +15,12 @@ module Exports
         completed_steps: 0,
         total_records: 0,
         processed_records: 0,
+        total_attachments: 0,
+        processed_attachments: 0,
         errors: []
       }
       @exported_ids_cache = {} # Cache format: { step_id => { 'column_name' => [values] } }
+      @temp_dir = nil
     end
 
     def call
@@ -37,6 +40,7 @@ module Exports
     private
 
     def export_all_steps(temp_dir)
+      @temp_dir = temp_dir
       migration_plan.migration_steps.order(:sequence).each do |step|
         export_step(step, temp_dir)
         @stats[:completed_steps] += 1
@@ -134,6 +138,21 @@ module Exports
         end
       end
 
+      # Add attachment columns if mode is not 'ignore'
+      unless step.ignore?
+        attachment_names = get_attachment_names(model_class)
+        attachment_names.each do |attachment_name|
+          if step.url?
+            headers << "#{attachment_name}_url"
+          elsif step.raw_data?
+            headers << "#{attachment_name}_path"
+            headers << "#{attachment_name}_filename"
+            headers << "#{attachment_name}_content_type"
+            headers << "#{attachment_name}_size"
+          end
+        end
+      end
+
       headers
     end
 
@@ -158,6 +177,39 @@ module Exports
         end
       end
 
+      # Add attachment data
+      unless step.ignore?
+        attachment_names = get_attachment_names(model_class)
+        attachment_names.each do |attachment_name|
+          attachment = record.send(attachment_name)
+
+          if attachment.attached?
+            if step.url?
+              # Export as URL
+              row << attachment_url(attachment)
+            elsif step.raw_data?
+              # Export as file path and metadata
+              file_path = export_attachment_file(record, attachment, attachment_name, step)
+              row << file_path
+              row << attachment.filename.to_s
+              row << attachment.content_type
+              row << attachment.byte_size
+              @stats[:processed_attachments] += 1
+            end
+          else
+            # No attachment - add empty values
+            if step.url?
+              row << nil
+            elsif step.raw_data?
+              row << nil
+              row << nil
+              row << nil
+              row << nil
+            end
+          end
+        end
+      end
+
       row
     end
 
@@ -169,17 +221,31 @@ module Exports
       FileUtils.mkdir_p(File.dirname(archive_path))
 
       Gem::Package::TarWriter.new(Zlib::GzipWriter.new(File.open(archive_path, 'wb'))) do |tar|
-        Dir.glob("#{temp_dir}/*").each do |file|
-          mode = File.stat(file).mode
-          relative_path = File.basename(file)
-
-          tar.add_file_simple(relative_path, mode, File.size(file)) do |tar_file|
-            File.open(file, 'rb') { |f| tar_file.write(f.read) }
-          end
-        end
+        # Recursively add all files and directories
+        add_directory_to_tar(tar, temp_dir, temp_dir)
       end
 
       archive_path.to_s
+    end
+
+    # Recursively add directory contents to tar archive
+    def add_directory_to_tar(tar, dir_path, base_path)
+      Dir.glob("#{dir_path}/*", File::FNM_DOTMATCH).each do |entry|
+        next if File.basename(entry) == '.' || File.basename(entry) == '..'
+
+        relative_path = entry.sub("#{base_path}/", '')
+
+        if File.directory?(entry)
+          # Recursively add subdirectories
+          add_directory_to_tar(tar, entry, base_path)
+        else
+          # Add file to archive
+          mode = File.stat(entry).mode
+          tar.add_file_simple(relative_path, mode, File.size(entry)) do |tar_file|
+            File.open(entry, 'rb') { |f| tar_file.write(f.read) }
+          end
+        end
+      end
     end
 
     def update_progress
@@ -320,6 +386,60 @@ module Exports
       else
         base_query
       end
+    end
+
+    # Get attachment names from model class
+    def get_attachment_names(model_class)
+      return [] unless model_class.respond_to?(:reflect_on_all_attachments)
+
+      model_class.reflect_on_all_attachments.map(&:name)
+    end
+
+    # Generate URL for attachment (for url mode)
+    def attachment_url(attachment)
+      return nil unless attachment.attached?
+
+      # Generate a Rails URL for the attachment
+      # This assumes Active Storage is configured with a service that supports URLs
+      Rails.application.routes.url_helpers.rails_blob_url(attachment, only_path: false)
+    rescue => e
+      Rails.logger.error "Failed to generate URL for attachment: #{e.message}"
+      nil
+    end
+
+    # Export attachment file to disk (for raw_data mode)
+    def export_attachment_file(record, attachment, attachment_name, step)
+      # Create attachments directory structure
+      attachments_dir = File.join(@temp_dir, 'attachments', step.source_model_name)
+      FileUtils.mkdir_p(attachments_dir)
+
+      # Generate unique filename: {record_id}_{attachment_name}_{original_filename}
+      safe_filename = sanitize_filename(attachment.filename.to_s)
+      file_name = "#{record.id}_#{attachment_name}_#{safe_filename}"
+      file_path = File.join(attachments_dir, file_name)
+
+      # Download and save the attachment
+      attachment.blob.open do |tempfile|
+        FileUtils.cp(tempfile.path, file_path)
+      end
+
+      # Return relative path for CSV
+      "attachments/#{step.source_model_name}/#{file_name}"
+    rescue => e
+      Rails.logger.error "Failed to export attachment #{attachment_name} for record #{record.id}: #{e.message}"
+      @stats[:errors] << {
+        step: step.source_model_name,
+        record_id: record.id,
+        attachment: attachment_name,
+        error: e.message
+      }
+      nil
+    end
+
+    # Sanitize filename to avoid filesystem issues
+    def sanitize_filename(filename)
+      # Remove path separators and other problematic characters
+      filename.gsub(/[\/\\:*?"<>|]/, '_')
     end
   end
 end

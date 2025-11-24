@@ -1,21 +1,23 @@
 DataMigration::Engine.routes.draw do
   # Devise routes for DataMigrationUser
   devise_for :users, class_name: 'DataMigrationUser',
-             module: :devise,
-             path: '',
-             path_names: {
-               sign_in: 'login',
-               sign_out: 'logout'
-             },
-             skip: [:registrations]
+                     controllers: {
+                       sessions: 'users/sessions'
+                     },
+                     path: '',
+                     path_names: {
+                       sign_in: 'login',
+                       sign_out: 'logout'
+                     },
+                     skip: [:registrations]
 
   # Define root path with devise_scope
   devise_scope :user do
-    root to: 'devise/sessions#new'
+    root to: 'users/sessions#new'
 
     # Registration routes for password changes only (edit/update)
     resource :registration,
-             only: [:edit, :update],
+             only: %i[edit update],
              path: 'users',
              path_names: { edit: 'password/edit' },
              controller: 'devise/registrations',
@@ -41,7 +43,7 @@ DataMigration::Engine.routes.draw do
     end
 
     # Migration Executions
-    resources :migration_executions, only: [:index, :show], controller: 'data_migration/migration_executions' do
+    resources :migration_executions, only: %i[index show], controller: 'data_migration/migration_executions' do
       member do
         get :download
       end

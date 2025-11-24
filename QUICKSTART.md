@@ -96,9 +96,10 @@ Login with:
 
 1. Click **"Add Migration Step"**
 2. Configure:
-   - **Model Name**: Any model from your Rails app (e.g., `Company`, `Employee`)
+   - **Model Name**: Select from dropdown (shows model fields and attachments)
    - **Sequence**: `1`
    - **Filter Query** (optional): `limit(10)` (to test with just 10 records)
+   - **Attachment Export Mode** (optional): Choose `Ignore`, `URL`, or `Raw Data` for Active Storage attachments
 3. Click **"Create Migration Step"**
 
 ### Step 3: Export Data
@@ -146,6 +147,13 @@ Add Association Overrides:
 ```
 
 This remaps the `company_id` foreign key by finding the Company in the target database using the `code` attribute instead of the source ID.
+
+### Handle Active Storage Attachments
+
+Set the **Attachment Export Mode** when models have `has_one_attached` or `has_many_attached`:
+- **Ignore** - Skip attachments entirely
+- **URL** - Export attachment URLs (best for cloud storage like S3)
+- **Raw Data** - Export actual files in archive (best for local storage)
 
 ---
 

@@ -9,6 +9,7 @@ A mountable Rails engine for migrating data between Rails application environmen
 - **Dynamic Filtering** - ActiveRecord queries with runtime parameter substitution
 - **Dependency Management** - Maintain referential integrity across related models
 - **Association Handling** - Remap foreign keys and handle polymorphic associations
+- **Attachment Handling** - Export/import Active Storage attachments with URL or raw data modes
 - **Background Processing** - Sidekiq-based async exports and imports
 - **Audit Trail** - Complete execution history and record-level tracking
 - **Real-time Progress** - ActionCable integration for live updates
@@ -74,6 +75,7 @@ bundle exec sidekiq
 - Redis
 - Devise (for authentication)
 - Pundit (for authorization)
+- Active Storage (optional, for attachment handling)
 
 ---
 
@@ -87,7 +89,7 @@ Navigate to `/data_migration/migration_plans` and create a new plan.
 
 Configure each step with:
 
-- **Model Name**: ActiveRecord model (e.g., `Company`, `Employee`)
+- **Model Name**: Select from dropdown (shows fields and attachments)
 - **Sequence**: Execution order
 - **Filter Query** (optional): ActiveRecord query with optional placeholders
 
@@ -100,6 +102,10 @@ where("created_at > ?", "{{cutoff_date}}")
 - **Column Overrides**: Export association attributes
 - **Association ID Mappings**: Remap foreign keys on import
 - **Dependee Attribute Mapping**: Filter based on parent step's exported records
+- **Attachment Export Mode**: Choose how to handle Active Storage attachments:
+  - **Ignore** - Skip attachments
+  - **URL** - Export attachment URLs (for cloud storage)
+  - **Raw Data** - Export actual files in archive (for local storage)
 
 ### 3. Export
 

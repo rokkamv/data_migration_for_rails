@@ -4,6 +4,13 @@ class MigrationStep < ApplicationRecord
   belongs_to :dependee, class_name: 'MigrationStep', optional: true
   has_many :dependents, class_name: 'MigrationStep', foreign_key: :dependee_id
 
+  # Enums
+  enum attachment_export_mode: {
+    ignore: 0,
+    url: 1,
+    raw_data: 2
+  }
+
   # Validations
   validates :source_model_name, presence: true
   validates :sequence, presence: true, numericality: { only_integer: true }
