@@ -10,7 +10,43 @@ module DataMigration
 
     def show
       authorize @execution
-      @migration_records = @execution.migration_records.order(created_at: :desc).limit(100)
+
+      # Initialize variables
+      @migration_records = []
+      @model_names = []
+      @action_counts = {}
+
+      # Only load migration records for import executions
+      if @execution.import?
+        # Reload association to ensure fresh data
+        @execution.reload
+
+        # Filter and paginate migration records
+        @migration_records = @execution.migration_records.order(created_at: :desc)
+
+        # Apply filters if provided
+        if params[:model].present?
+          @migration_records = @migration_records.by_model(params[:model])
+        end
+
+        if params[:filter_action].present?
+          @migration_records = @migration_records.by_action(params[:filter_action])
+        end
+
+        # Limit to 500 records for display (can be customized)
+        @limit = (params[:limit] || 500).to_i
+        @migration_records = @migration_records.limit(@limit).to_a
+
+        # Get unique model names for filter dropdown
+        @model_names = @execution.migration_records.distinct.pluck(:migrated_model_name).sort
+
+        # Get total counts by action (convert enum integers to string keys)
+        raw_counts = @execution.migration_records.group(:action).count
+        raw_counts.each do |action_value, count|
+          action_name = MigrationRecord.actions.key(action_value)
+          @action_counts[action_name] = count if action_name
+        end
+      end
     end
 
     def download

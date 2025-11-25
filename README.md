@@ -6,12 +6,13 @@ A mountable Rails engine for migrating data between Rails application environmen
 
 - **Role-Based Access Control** - Admin, Operator, and Viewer roles
 - **Migration Plans** - Reusable migration configurations with execution order
+- **Plan Configuration Import/Export** - Share migration plans across environments as JSON
 - **Dynamic Filtering** - ActiveRecord queries with runtime parameter substitution
 - **Dependency Management** - Maintain referential integrity across related models
 - **Association Handling** - Remap foreign keys and handle polymorphic associations
 - **Attachment Handling** - Export/import Active Storage attachments with URL or raw data modes
 - **Background Processing** - Sidekiq-based async exports and imports
-- **Audit Trail** - Complete execution history and record-level tracking
+- **Audit Trail** - Complete execution history and detailed record-level tracking
 - **Real-time Progress** - ActionCable integration for live updates
 
 ---
@@ -132,6 +133,15 @@ Example: Export only employees whose companies were exported.
 ### Polymorphic Associations
 
 Configure polymorphic associations with type-specific lookup attributes for proper ID remapping on import.
+
+### Plan Configuration Import/Export
+
+Share migration plan configurations across environments:
+
+1. **Export**: Click "📋 Export Config" on any plan → Download JSON file
+2. **Import**: Click "📋 Import Config" → Upload JSON → Plan and steps created/updated automatically
+
+Perfect for deploying migration plans to production or sharing with team members.
 
 ---
 

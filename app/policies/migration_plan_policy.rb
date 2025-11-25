@@ -23,6 +23,14 @@ class MigrationPlanPolicy < ApplicationPolicy
     user.can_execute_migrations?
   end
 
+  def export_config?
+    true # All authenticated users can export plan configuration
+  end
+
+  def import_config?
+    user.admin? # Only admins can import plan configurations
+  end
+
   class Scope < Scope
     def resolve
       scope.all # All users can see all plans

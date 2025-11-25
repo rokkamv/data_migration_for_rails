@@ -1,8 +1,47 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h1>Migration Plans</h1>
-  <% if policy(MigrationPlan).create? %>
-    <%= link_to "New Migration Plan", new_migration_plan_path, class: "btn btn-primary" %>
-  <% end %>
+  <div class="btn-group">
+    <% if policy(MigrationPlan).create? %>
+      <%= link_to "New Migration Plan", new_migration_plan_path, class: "btn btn-primary" %>
+    <% end %>
+    <% if policy(MigrationPlan.new).import_config? %>
+      <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#importConfigModal">
+        📋 Import Config
+      </button>
+    <% end %>
+  </div>
+</div>
+
+<!-- Import Config Modal -->
+<div class="modal fade" id="importConfigModal" tabindex="-1" aria-labelledby="importConfigModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="importConfigModalLabel">Import Plan Configuration</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <%= form_with url: import_config_migration_plans_path, method: :post, multipart: true do |f| %>
+        <div class="modal-body">
+          <div class="mb-3">
+            <%= f.label :config_file, "Select Configuration File (.json)", class: "form-label" %>
+            <%= f.file_field :config_file, class: "form-control", accept: "application/json,.json", required: true %>
+            <div class="form-text">
+              Upload a JSON configuration file exported from another environment.
+              This will create or update a migration plan with all its steps.
+            </div>
+          </div>
+
+          <div class="alert alert-info small">
+            <strong>Note:</strong> If a plan with the same name exists, it will be updated with the imported configuration.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <%= f.submit "Import Configuration", class: "btn btn-primary" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
 </div>
 
 <% if @migration_plans.any? %>

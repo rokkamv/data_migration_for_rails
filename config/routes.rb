@@ -33,6 +33,14 @@ DataMigration::Engine.routes.draw do
 
     # Migration Plans and Steps
     resources :migration_plans, controller: 'data_migration/migration_plans' do
+      member do
+        get :export_config
+      end
+
+      collection do
+        post :import_config
+      end
+
       resources :migration_steps, except: [:index], controller: 'data_migration/migration_steps'
 
       get 'export/new', to: 'data_migration/exports#new', as: :new_export

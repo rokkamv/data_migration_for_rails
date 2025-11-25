@@ -5,10 +5,15 @@
   </div>
   <div class="btn-group">
     <% if policy(@migration_plan).execute? %>
-      <%= link_to "Export", migration_plan_new_export_path(@migration_plan),
+      <%= link_to "Export Data", migration_plan_new_export_path(@migration_plan),
           class: "btn btn-success" %>
-      <%= link_to "Import", migration_plan_new_import_path(@migration_plan),
+      <%= link_to "Import Data", migration_plan_new_import_path(@migration_plan),
           class: "btn btn-info" %>
+    <% end %>
+    <% if policy(@migration_plan).export_config? %>
+      <%= link_to "📋 Export Config", export_config_migration_plan_path(@migration_plan),
+          class: "btn btn-outline-primary",
+          title: "Export plan configuration as JSON" %>
     <% end %>
     <% if policy(@migration_plan).update? %>
       <%= link_to "Edit Plan", edit_migration_plan_path(@migration_plan), class: "btn btn-warning" %>

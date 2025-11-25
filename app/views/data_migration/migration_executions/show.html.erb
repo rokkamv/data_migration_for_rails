@@ -151,43 +151,124 @@
     </div>
 
     <!-- Migration Records -->
-    <% if @execution.import? && @migration_records.any? %>
+    <% if @execution.import? && @execution.migration_records.any? %>
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h5 class="mb-0">Recent Records (Last 100)</h5>
+          <h5 class="mb-0">Processed Records</h5>
           <span class="badge bg-secondary"><%= @execution.migration_records.count %> total</span>
         </div>
+
+        <!-- Action Summary -->
+        <% if @action_counts.any? %>
+          <div class="card-body border-bottom">
+            <div class="row text-center">
+              <% if @action_counts['created'].to_i > 0 %>
+                <div class="col">
+                  <span class="badge bg-success fs-6"><%= @action_counts['created'] %> Created</span>
+                </div>
+              <% end %>
+              <% if @action_counts['updated'].to_i > 0 %>
+                <div class="col">
+                  <span class="badge bg-warning fs-6"><%= @action_counts['updated'] %> Updated</span>
+                </div>
+              <% end %>
+              <% if @action_counts['skipped'].to_i > 0 %>
+                <div class="col">
+                  <span class="badge bg-secondary fs-6"><%= @action_counts['skipped'] %> Skipped</span>
+                </div>
+              <% end %>
+              <% if @action_counts['failed'].to_i > 0 %>
+                <div class="col">
+                  <span class="badge bg-danger fs-6"><%= @action_counts['failed'] %> Failed</span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+
+        <!-- Filters -->
+        <div class="card-body border-bottom bg-light">
+          <%= form_with url: migration_execution_path(@execution), method: :get, local: true, class: "row g-3" do |f| %>
+            <div class="col-md-4">
+              <%= f.label :model, "Filter by Model", class: "form-label small" %>
+              <%= f.select :model,
+                  options_for_select([['All Models', '']] + @model_names.map { |m| [m, m] }, params[:model]),
+                  {},
+                  { class: "form-select form-select-sm", onchange: "this.form.submit()" } %>
+            </div>
+            <div class="col-md-4">
+              <%= f.label :filter_action, "Filter by Action", class: "form-label small" %>
+              <%= f.select :filter_action,
+                  options_for_select([['All Actions', ''], ['Created', 'created'], ['Updated', 'updated'], ['Skipped', 'skipped'], ['Failed', 'failed']], params[:filter_action]),
+                  {},
+                  { class: "form-select form-select-sm", onchange: "this.form.submit()" } %>
+            </div>
+            <div class="col-md-4">
+              <%= f.label :limit, "Records to Show", class: "form-label small" %>
+              <%= f.select :limit,
+                  options_for_select([['100', 100], ['500', 500], ['1000', 1000], ['5000', 5000]], @limit),
+                  {},
+                  { class: "form-select form-select-sm", onchange: "this.form.submit()" } %>
+            </div>
+          <% end %>
+        </div>
+
         <div class="card-body">
           <div class="table-responsive">
             <table class="table table-sm table-hover">
               <thead>
                 <tr>
                   <th>Model</th>
-                  <th>Record</th>
+                  <th>Record ID</th>
                   <th>Action</th>
-                  <th>Error</th>
+                  <th>Changes/Error</th>
                 </tr>
               </thead>
               <tbody>
-                <% @migration_records.each do |record| %>
+                <% if @migration_records.any? %>
+                  <% @migration_records.each do |record| %>
+                    <tr class="<%= 'table-danger' if record.failed? %>">
+                      <td><%= record.migrated_model_name %></td>
+                      <td><small class="font-monospace"><%= record.record_identifier %></small></td>
+                      <td>
+                        <span class="badge bg-<%= case record.action
+                          when 'created' then 'success'
+                          when 'updated' then 'warning'
+                          when 'skipped' then 'secondary'
+                          when 'failed' then 'danger'
+                          else 'info'
+                        end %>">
+                          <%= record.action.titleize %>
+                        </span>
+                      </td>
+                      <td>
+                        <% if record.error_message.present? %>
+                          <small class="text-danger"><%= truncate(record.error_message, length: 80) %></small>
+                        <% elsif record.record_changes.present? && record.record_changes.any? %>
+                          <details>
+                            <summary class="text-muted small" style="cursor: pointer;">View changes</summary>
+                            <pre class="mb-0 mt-1 small"><%= JSON.pretty_generate(record.record_changes) %></pre>
+                          </details>
+                        <% end %>
+                      </td>
+                    </tr>
+                  <% end %>
+                <% else %>
                   <tr>
-                    <td><%= record.migrated_model_name %></td>
-                    <td><small><%= record.record_identifier %></small></td>
-                    <td>
-                      <span class="badge bg-<%= record.success? ? 'success' : 'danger' %>">
-                        <%= record.action.titleize %>
-                      </span>
-                    </td>
-                    <td>
-                      <% if record.error_message.present? %>
-                        <small class="text-danger"><%= truncate(record.error_message, length: 50) %></small>
-                      <% end %>
+                    <td colspan="4" class="text-center text-muted py-4">
+                      No records match the current filters. Try adjusting the filters above.
                     </td>
                   </tr>
                 <% end %>
               </tbody>
             </table>
           </div>
+
+          <% if @migration_records.count == @limit %>
+            <div class="alert alert-info mt-3">
+              Showing first <%= @limit %> records. Use the filter above to show more or filter by model/action.
+            </div>
+          <% end %>
         </div>
       </div>
     <% end %>
