@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 module DataMigration
   class ModelRegistry
-    CACHE_KEY = 'data_migration_model_registry'.freeze
+    CACHE_KEY = 'data_migration_model_registry'
     CACHE_EXPIRY = 1.hour
 
     class << self
@@ -39,7 +41,7 @@ module DataMigration
 
           begin
             models_data[model.name] = extract_model_metadata(model)
-          rescue => e
+          rescue StandardError => e
             Rails.logger.warn "Failed to extract metadata for #{model.name}: #{e.message}"
           end
         end

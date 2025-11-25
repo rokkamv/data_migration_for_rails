@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module DataMigration
   module ApplicationHelper
     def execution_status_color(status)

@@ -49,7 +49,7 @@ bundle exec rake data_migration_engine:install:migrations
 bundle exec rake db:migrate
 ```
 
-### 2. Mount Routes
+### 4. Mount Routes
 
 In `config/routes.rb`:
 
@@ -59,10 +59,10 @@ Rails.application.routes.draw do
 end
 ```
 
-### 3. Seed Initial Admin User
+### 5. Seed Initial Admin User
 
 ```bash
-bin/rails db:seed
+bundle exec rake data_migration:seed
 ```
 
 This creates an admin user with independent authentication:
@@ -71,7 +71,7 @@ This creates an admin user with independent authentication:
 
 **Change the password immediately** after first login! Admin users can create additional users via the "Users" menu.
 
-### 4. Configure Sidekiq
+### 6. Configure Sidekiq
 
 In `config/application.rb`:
 
@@ -185,15 +185,16 @@ Perfect for deploying migration plans to production or sharing with team members
 - Provide all required parameter values before export
 
 **Model not found:**
-- Verify exact ActiveRecord class name
+- Verify exact ActiveRecord class name (case-sensitive, singular form)
+  - Example: Use "Company" not "company" or "Companies"
 - Check lookup attributes exist on target models
 
 ---
 
 ## License
 
-**Proprietary Software** - All rights reserved.
+This software is licensed under a proprietary license.
 
-This software is confidential and proprietary. Unauthorized copying, distribution, or use is strictly prohibited.
+Copyright © 2025 Vaibhav Rokkam. All rights reserved.
 
-Copyright © 2025. All rights reserved.
+Unauthorized copying, distribution, modification, or use is strictly prohibited without explicit written permission.

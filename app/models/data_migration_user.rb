@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 class DataMigrationUser < ApplicationRecord
-  self.table_name = "data_migration_users"
+  self.table_name = 'data_migration_users'
 
   # Devise modules
   devise :database_authenticatable, :registerable,

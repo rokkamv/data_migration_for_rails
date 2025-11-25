@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module DataMigration
   class MigrationPlansController < ApplicationController
     include DataMigration::PunditAuthorization
@@ -22,7 +24,8 @@ module DataMigration
       authorize @migration_plan
 
       if @migration_plan.save
-        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}", notice: 'Migration plan was successfully created.'
+        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}",
+                    notice: 'Migration plan was successfully created.'
       else
         render :new, status: :unprocessable_entity
       end
@@ -36,7 +39,8 @@ module DataMigration
       authorize @migration_plan
 
       if @migration_plan.update(migration_plan_params)
-        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}", notice: 'Migration plan was successfully updated.'
+        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}",
+                    notice: 'Migration plan was successfully updated.'
       else
         render :edit, status: :unprocessable_entity
       end
@@ -46,9 +50,10 @@ module DataMigration
       authorize @migration_plan
 
       if @migration_plan.destroy
-        redirect_to "/data_migration/migration_plans", notice: 'Migration plan was successfully destroyed.'
+        redirect_to '/data_migration/migration_plans', notice: 'Migration plan was successfully destroyed.'
       else
-        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}", alert: 'Cannot delete migration plan with existing executions.'
+        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}",
+                    alert: 'Cannot delete migration plan with existing executions.'
       end
     end
 
@@ -68,7 +73,7 @@ module DataMigration
       authorize MigrationPlan.new
 
       unless params[:config_file].present?
-        redirect_to "/data_migration/migration_plans", alert: 'Please select a configuration file to import.'
+        redirect_to '/data_migration/migration_plans', alert: 'Please select a configuration file to import.'
         return
       end
 
@@ -78,9 +83,10 @@ module DataMigration
       imported_plan = service.call
 
       if service.success? && imported_plan
-        redirect_to "/data_migration/migration_plans/#{imported_plan.id}", notice: 'Migration plan configuration imported successfully!'
+        redirect_to "/data_migration/migration_plans/#{imported_plan.id}",
+                    notice: 'Migration plan configuration imported successfully!'
       else
-        redirect_to "/data_migration/migration_plans", alert: "Import failed: #{service.errors.join(', ')}"
+        redirect_to '/data_migration/migration_plans', alert: "Import failed: #{service.errors.join(', ')}"
       end
     end
 

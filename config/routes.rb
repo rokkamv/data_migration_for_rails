@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 DataMigration::Engine.routes.draw do
   # Devise routes for DataMigrationUser
   devise_for :users, class_name: 'DataMigrationUser',

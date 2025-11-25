@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module DataMigration
   class MigrationStepsController < ApplicationController
     include DataMigration::PunditAuthorization
@@ -31,7 +33,8 @@ module DataMigration
       end
 
       if @migration_step.save
-        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}", notice: 'Migration step was successfully created.'
+        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}",
+                    notice: 'Migration step was successfully created.'
       else
         render :new, status: :unprocessable_entity
       end
@@ -56,7 +59,8 @@ module DataMigration
       end
 
       if @migration_step.save
-        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}", notice: 'Migration step was successfully updated.'
+        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}",
+                    notice: 'Migration step was successfully updated.'
       else
         render :edit, status: :unprocessable_entity
       end
@@ -66,7 +70,8 @@ module DataMigration
       authorize @migration_step
 
       @migration_step.destroy
-      redirect_to "/data_migration/migration_plans/#{@migration_plan.id}", notice: 'Migration step was successfully destroyed.'
+      redirect_to "/data_migration/migration_plans/#{@migration_plan.id}",
+                  notice: 'Migration step was successfully destroyed.'
     end
 
     private
@@ -94,11 +99,9 @@ module DataMigration
       if step.column_overrides.present?
         begin
           parsed = step.column_overrides.is_a?(String) ? JSON.parse(step.column_overrides) : step.column_overrides
-          unless parsed.is_a?(Hash)
-            errors << "Column Overrides must be a JSON object/hash"
-          end
+          errors << 'Column Overrides must be a JSON object/hash' unless parsed.is_a?(Hash)
         rescue JSON::ParserError
-          errors << "Column Overrides contains invalid JSON"
+          errors << 'Column Overrides contains invalid JSON'
         end
       end
 
@@ -106,9 +109,7 @@ module DataMigration
       if step.association_overrides.present?
         begin
           parsed = step.association_overrides.is_a?(String) ? JSON.parse(step.association_overrides) : step.association_overrides
-          unless parsed.is_a?(Hash)
-            errors << "Association Overrides must be a JSON object/hash"
-          else
+          if parsed.is_a?(Hash)
             # Validate structure: each value should be a hash with proper keys
             parsed.each do |key, value|
               unless value.is_a?(Hash)
@@ -130,9 +131,7 @@ module DataMigration
                 end
               else
                 # Non-polymorphic requires model and lookup_attributes
-                if value['model'].blank?
-                  errors << "Association Overrides: '#{key}' must have a 'model' key"
-                end
+                errors << "Association Overrides: '#{key}' must have a 'model' key" if value['model'].blank?
 
                 if value['lookup_attributes'].blank?
                   errors << "Association Overrides: '#{key}' must have 'lookup_attributes' key"
@@ -141,9 +140,11 @@ module DataMigration
                 end
               end
             end
+          else
+            errors << 'Association Overrides must be a JSON object/hash'
           end
         rescue JSON::ParserError
-          errors << "Association Overrides contains invalid JSON"
+          errors << 'Association Overrides contains invalid JSON'
         end
       end
 
@@ -151,11 +152,9 @@ module DataMigration
       if step.dependee_attribute_mapping.present?
         begin
           parsed = step.dependee_attribute_mapping.is_a?(String) ? JSON.parse(step.dependee_attribute_mapping) : step.dependee_attribute_mapping
-          unless parsed.is_a?(Hash)
-            errors << "Dependee Attribute Mapping must be a JSON object/hash"
-          end
+          errors << 'Dependee Attribute Mapping must be a JSON object/hash' unless parsed.is_a?(Hash)
         rescue JSON::ParserError
-          errors << "Dependee Attribute Mapping contains invalid JSON"
+          errors << 'Dependee Attribute Mapping contains invalid JSON'
         end
       end
 

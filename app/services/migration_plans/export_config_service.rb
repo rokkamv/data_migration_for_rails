@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module MigrationPlans
   class ExportConfigService
     attr_reader :migration_plan

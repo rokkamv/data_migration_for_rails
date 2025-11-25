@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class MigrationRecord < ApplicationRecord
   # Associations
   belongs_to :migration_execution
@@ -23,6 +25,7 @@ class MigrationRecord < ApplicationRecord
     value = read_attribute(:record_changes)
     return {} if value.blank?
     return value if value.is_a?(Hash)
+
     JSON.parse(value)
   rescue JSON::ParserError => e
     Rails.logger.error "Failed to parse record_changes for MigrationRecord #{id}: #{e.message}"

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class MigrationExecution < ApplicationRecord
   # Associations
   belongs_to :migration_plan
@@ -30,7 +32,7 @@ class MigrationExecution < ApplicationRecord
   def progress_percentage
     return 0 if stats.blank? || stats['total'].to_i.zero?
 
-    ((stats['processed'].to_f / stats['total'].to_f) * 100).round(2)
+    ((stats['processed'].to_f / stats['total']) * 100).round(2)
   end
 
   def display_name

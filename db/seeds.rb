@@ -1,5 +1,9 @@
+# frozen_string_literal: true
+
 # Create initial admin user for Data Migration engine
-unless DataMigrationUser.exists?(email: 'admin@datamigration.local')
+if DataMigrationUser.exists?(email: 'admin@datamigration.local')
+  puts 'ℹ️  Admin user already exists'
+else
   DataMigrationUser.create!(
     name: 'Administrator',
     email: 'admin@datamigration.local',
@@ -8,10 +12,8 @@ unless DataMigrationUser.exists?(email: 'admin@datamigration.local')
     role: :admin
   )
 
-  puts "✅ Created admin user:"
-  puts "   Email: admin@datamigration.local"
-  puts "   Password: password"
-  puts "   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY IN PRODUCTION!"
-else
-  puts "ℹ️  Admin user already exists"
+  puts '✅ Created admin user:'
+  puts '   Email: admin@datamigration.local'
+  puts '   Password: password'
+  puts '   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY IN PRODUCTION!'
 end

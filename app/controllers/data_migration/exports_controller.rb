@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module DataMigration
   class ExportsController < ApplicationController
     before_action :set_migration_plan
@@ -15,10 +17,10 @@ module DataMigration
 
       # Permit the filter_params dynamically based on what's required
       provided_params = if params[:filter_params].present? && required_params.any?
-        params.require(:filter_params).permit(*required_params.keys)
-      else
-        {}
-      end
+                          params.require(:filter_params).permit(*required_params.keys)
+                        else
+                          {}
+                        end
 
       missing_params = required_params.keys.select do |param|
         provided_params[param].blank?
@@ -40,7 +42,8 @@ module DataMigration
 
       ExportJob.perform_later(execution.id)
 
-      redirect_to "/data_migration/migration_executions/#{execution.id}", notice: 'Export started. You will be notified when it completes.'
+      redirect_to "/data_migration/migration_executions/#{execution.id}",
+                  notice: 'Export started. You will be notified when it completes.'
     end
 
     private

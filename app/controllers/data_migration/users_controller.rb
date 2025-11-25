@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 module DataMigration
   class UsersController < ApplicationController
     include DataMigration::PunditAuthorization
 
-    before_action :set_user, only: [:edit, :update, :destroy]
+    before_action :set_user, only: %i[edit update destroy]
 
     def index
       authorize DataMigrationUser
@@ -33,11 +35,11 @@ module DataMigration
       authorize @user
 
       # Remove password if blank
-      if user_params[:password].blank?
-        params_to_update = user_params.except(:password, :password_confirmation)
-      else
-        params_to_update = user_params
-      end
+      params_to_update = if user_params[:password].blank?
+                           user_params.except(:password, :password_confirmation)
+                         else
+                           user_params
+                         end
 
       if @user.update(params_to_update)
         redirect_to users_path, notice: 'User updated successfully.'

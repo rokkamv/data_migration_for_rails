@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module DataMigration
   class ApplicationController < ActionController::Base
     protect_from_forgery with: :null_session, prepend: true
@@ -26,7 +28,7 @@ module DataMigration
     end
 
     def user_not_authorized
-      flash[:alert] = "You are not authorized to perform this action."
+      flash[:alert] = 'You are not authorized to perform this action.'
       redirect_to(request.referrer || '/data_migration/migration_plans')
     end
 
@@ -36,7 +38,7 @@ module DataMigration
     # No need to override since resource name is :users
 
     # Override Devise redirect after sign in
-    def after_sign_in_path_for(resource)
+    def after_sign_in_path_for(_resource)
       '/data_migration/migration_plans'
     end
 
@@ -46,14 +48,13 @@ module DataMigration
       if devise_controller?
         if controller_name == 'sessions'
           # For login forms, redirect back to login to get fresh token
-          flash[:alert] = "Your session has expired. Please try signing in again."
-          redirect_to new_session_path(:user)
+          flash[:alert] = 'Your session has expired. Please try signing in again.'
         else
           # For other Devise controllers, sign out and redirect
           sign_out if user_signed_in?
-          flash[:alert] = "Session expired. Please sign in again."
-          redirect_to new_session_path(:user)
+          flash[:alert] = 'Session expired. Please sign in again.'
         end
+        redirect_to new_session_path(:user)
       else
         super
       end

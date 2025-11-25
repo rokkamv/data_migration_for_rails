@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class MigrationStep < ApplicationRecord
   # Associations
   belongs_to :migration_plan
@@ -28,6 +30,7 @@ class MigrationStep < ApplicationRecord
     value = read_attribute(:dependee_attribute_mapping)
     return {} if value.blank?
     return value if value.is_a?(Hash)
+
     JSON.parse(value)
   rescue JSON::ParserError => e
     Rails.logger.error "Failed to parse dependee_attribute_mapping for MigrationStep #{id}: #{e.message}"
@@ -50,6 +53,7 @@ class MigrationStep < ApplicationRecord
     value = read_attribute(:column_overrides)
     return {} if value.blank?
     return value if value.is_a?(Hash)
+
     JSON.parse(value)
   rescue JSON::ParserError => e
     Rails.logger.error "Failed to parse column_overrides for MigrationStep #{id}: #{e.message}"
@@ -72,6 +76,7 @@ class MigrationStep < ApplicationRecord
     value = read_attribute(:association_overrides)
     return {} if value.blank?
     return value if value.is_a?(Hash)
+
     JSON.parse(value)
   rescue JSON::ParserError => e
     Rails.logger.error "Failed to parse association_overrides for MigrationStep #{id}: #{e.message}"
@@ -110,14 +115,14 @@ class MigrationStep < ApplicationRecord
       next if value.blank?
 
       # If it's a string, try to parse it as JSON
-      if value.is_a?(String)
-        begin
-          parsed_value = JSON.parse(value)
-          send("#{field}=", parsed_value)
-        rescue JSON::ParserError => e
-          # Add validation error for invalid JSON
-          errors.add(field, "contains invalid JSON: #{e.message}")
-        end
+      next unless value.is_a?(String)
+
+      begin
+        parsed_value = JSON.parse(value)
+        send("#{field}=", parsed_value)
+      rescue JSON::ParserError => e
+        # Add validation error for invalid JSON
+        errors.add(field, "contains invalid JSON: #{e.message}")
       end
     end
   end

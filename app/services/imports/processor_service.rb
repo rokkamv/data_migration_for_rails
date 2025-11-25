@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'csv'
 require 'fileutils'
 require 'zlib'
@@ -32,13 +34,11 @@ module Imports
       execution.update!(status: :running, started_at: Time.current)
 
       Dir.mktmpdir do |temp_dir|
-        begin
-          extract_archive(temp_dir)
-          import_all_steps(temp_dir)
-          finalize_success
-        rescue StandardError => e
-          finalize_failure(e)
-        end
+        extract_archive(temp_dir)
+        import_all_steps(temp_dir)
+        finalize_success
+      rescue StandardError => e
+        finalize_failure(e)
       end
     end
 
@@ -81,7 +81,7 @@ module Imports
       rows.each do |row|
         process_row(row, step, model_class)
         @stats[:processed_records] += 1
-        update_progress if @stats[:processed_records] % 50 == 0
+        update_progress if (@stats[:processed_records] % 50).zero?
       end
     rescue StandardError => e
       @stats[:errors] << { step: step.source_model_name, error: e.message }
@@ -108,7 +108,7 @@ module Imports
       record_migration_action(step, row, :failed, {}, e.message)
     end
 
-    def build_attributes(row, step, model_class)
+    def build_attributes(row, _step, model_class)
       attributes = {}
 
       model_class.column_names.each do |column|
@@ -180,9 +180,7 @@ module Imports
       Array(lookup_attributes).each do |attr|
         # Look for CSV column like "company.name"
         csv_column = "#{association_name}.#{attr}"
-        if csv_row.key?(csv_column) && csv_row[csv_column].present?
-          conditions[attr] = csv_row[csv_column]
-        end
+        conditions[attr] = csv_row[csv_column] if csv_row.key?(csv_column) && csv_row[csv_column].present?
       end
 
       # If we have conditions, query the database
@@ -227,7 +225,7 @@ module Imports
         ignored_columns = step.column_overrides&.dig('ignore_on_update') || []
         update_attrs = attributes.except(*ignored_columns, 'id', 'created_at')
 
-        changes = record.attributes.slice(*update_attrs.keys).to_h.select { |k, v| v != update_attrs[k] }
+        changes = record.attributes.slice(*update_attrs.keys).to_h.reject { |k, v| v == update_attrs[k] }
 
         if record.update(update_attrs)
           @stats[:updated] += 1
@@ -245,10 +243,10 @@ module Imports
       end
 
       # Store ID mapping
-      if csv_row['id'].present?
-        mapping_key = "#{step.source_model_name}_#{csv_row['id']}"
-        @id_mapping[mapping_key] = record.id
-      end
+      return unless csv_row['id'].present?
+
+      mapping_key = "#{step.source_model_name}_#{csv_row['id']}"
+      @id_mapping[mapping_key] = record.id
     end
 
     def handle_new_record(attributes, step, model_class, csv_row)
@@ -281,7 +279,11 @@ module Imports
       # If no updated_at in import data, always update
       return true unless attributes['updated_at'].present?
 
-      source_updated_at = Time.zone.parse(attributes['updated_at'].to_s) rescue nil
+      source_updated_at = begin
+        Time.zone.parse(attributes['updated_at'].to_s)
+      rescue StandardError
+        nil
+      end
       return true unless source_updated_at
 
       # Update if source is newer
@@ -289,7 +291,7 @@ module Imports
     end
 
     def record_migration_action(step, csv_row, action, changes, error_message = nil)
-      record_identifier = csv_row['id'].present? ? "#{step.source_model_name}##{csv_row['id']}" : "unknown"
+      record_identifier = csv_row['id'].present? ? "#{step.source_model_name}##{csv_row['id']}" : 'unknown'
 
       MigrationRecord.create!(
         migration_execution: execution,
@@ -320,7 +322,8 @@ module Imports
 
     def calculate_percentage
       return 0 if @stats[:total_records].zero?
-      ((@stats[:processed_records].to_f / @stats[:total_records].to_f) * 100).round(2)
+
+      ((@stats[:processed_records].to_f / @stats[:total_records]) * 100).round(2)
     end
 
     def progress_message
@@ -379,9 +382,7 @@ module Imports
           url_column = "#{attachment_name}_url"
           url = csv_row[url_column]
 
-          if url.present?
-            import_attachment_from_url(record, attachment_name, url)
-          end
+          import_attachment_from_url(record, attachment_name, url) if url.present?
         elsif step.raw_data?
           # Import from raw file
           path_column = "#{attachment_name}_path"
@@ -397,7 +398,7 @@ module Imports
           end
         end
       end
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error "Failed to import attachments for record #{record.id}: #{e.message}"
       @stats[:errors] << {
         step: step.source_model_name,
@@ -418,7 +419,7 @@ module Imports
         )
         @stats[:processed_attachments] += 1
       end
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error "Failed to download attachment from URL #{url}: #{e.message}"
       @stats[:errors] << {
         attachment_name: attachment_name,
@@ -444,7 +445,7 @@ module Imports
         )
         @stats[:processed_attachments] += 1
       end
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error "Failed to attach file #{full_path}: #{e.message}"
       @stats[:errors] << {
         attachment_name: attachment_name,

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class CreateMigrationExecutions < ActiveRecord::Migration[7.1]
   def change
     create_table :migration_executions do |t|

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class MigrationPlan < ApplicationRecord
   # Associations
   belongs_to :user, class_name: 'DataMigrationUser'

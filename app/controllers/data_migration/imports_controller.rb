@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module DataMigration
   class ImportsController < ApplicationController
     before_action :set_migration_plan
@@ -12,7 +14,8 @@ module DataMigration
       authorize @migration_plan, :execute?
 
       unless params[:archive_file].present?
-        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}/import/new", alert: 'Please select a file to upload.'
+        redirect_to "/data_migration/migration_plans/#{@migration_plan.id}/import/new",
+                    alert: 'Please select a file to upload.'
         return
       end
 
@@ -35,7 +38,8 @@ module DataMigration
 
       ImportJob.perform_later(execution.id)
 
-      redirect_to "/data_migration/migration_executions/#{execution.id}", notice: 'Import started. You will be notified when it completes.'
+      redirect_to "/data_migration/migration_executions/#{execution.id}",
+                  notice: 'Import started. You will be notified when it completes.'
     end
 
     private

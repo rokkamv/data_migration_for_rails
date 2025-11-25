@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class DataMigrationUserPolicy < ApplicationPolicy
   def index?
     user.can_manage_users?

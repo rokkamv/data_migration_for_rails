@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 module DataMigration
   class MigrationExecutionsController < ApplicationController
     include DataMigration::PunditAuthorization
 
-    before_action :set_execution, only: [:show, :download]
+    before_action :set_execution, only: %i[show download]
 
     def index
       @executions = policy_scope(MigrationExecution).recent.includes(:migration_plan, :user)
@@ -17,35 +19,31 @@ module DataMigration
       @action_counts = {}
 
       # Only load migration records for import executions
-      if @execution.import?
-        # Reload association to ensure fresh data
-        @execution.reload
+      return unless @execution.import?
 
-        # Filter and paginate migration records
-        @migration_records = @execution.migration_records.order(created_at: :desc)
+      # Reload association to ensure fresh data
+      @execution.reload
 
-        # Apply filters if provided
-        if params[:model].present?
-          @migration_records = @migration_records.by_model(params[:model])
-        end
+      # Filter and paginate migration records
+      @migration_records = @execution.migration_records.order(created_at: :desc)
 
-        if params[:filter_action].present?
-          @migration_records = @migration_records.by_action(params[:filter_action])
-        end
+      # Apply filters if provided
+      @migration_records = @migration_records.by_model(params[:model]) if params[:model].present?
 
-        # Limit to 500 records for display (can be customized)
-        @limit = (params[:limit] || 500).to_i
-        @migration_records = @migration_records.limit(@limit).to_a
+      @migration_records = @migration_records.by_action(params[:filter_action]) if params[:filter_action].present?
 
-        # Get unique model names for filter dropdown
-        @model_names = @execution.migration_records.distinct.pluck(:migrated_model_name).sort
+      # Limit to 500 records for display (can be customized)
+      @limit = (params[:limit] || 500).to_i
+      @migration_records = @migration_records.limit(@limit).to_a
 
-        # Get total counts by action (convert enum integers to string keys)
-        raw_counts = @execution.migration_records.group(:action).count
-        raw_counts.each do |action_value, count|
-          action_name = MigrationRecord.actions.key(action_value)
-          @action_counts[action_name] = count if action_name
-        end
+      # Get unique model names for filter dropdown
+      @model_names = @execution.migration_records.distinct.pluck(:migrated_model_name).sort
+
+      # Get total counts by action (convert enum integers to string keys)
+      raw_counts = @execution.migration_records.group(:action).count
+      raw_counts.each do |action_value, count|
+        action_name = MigrationRecord.actions.key(action_value)
+        @action_counts[action_name] = count if action_name
       end
     end
 

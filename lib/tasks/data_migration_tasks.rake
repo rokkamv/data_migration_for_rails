@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 namespace :data_migration do
-  desc "Install Data Migration engine (migrations + seed admin user)"
+  desc 'Install Data Migration engine (migrations + seed admin user)'
   task install: :environment do
-    puts "Installing Data Migration engine..."
-    puts "=" * 80
+    puts 'Installing Data Migration engine...'
+    puts '=' * 80
 
     # Copy migrations
     puts "
@@ -19,20 +21,19 @@ namespace :data_migration do
 👤 Creating admin user..."
     DataMigration::Engine.load_seed
 
-    puts "
-" + "=" * 80
-    puts "✅ Installation complete!"
+    puts "\n#{'=' * 80}"
+    puts '✅ Installation complete!'
     puts "
 📋 Next Steps:"
     puts "1. Add to routes.rb: mount DataMigration::Engine => '/data_migration'"
-    puts "2. Configure Sidekiq in config/application.rb"
-    puts "3. Start Redis and Sidekiq"
-    puts "4. Visit /data_migration"
-    puts "5. Login with: admin@datamigration.local / password"
-    puts "6. ⚠️  CHANGE THE ADMIN PASSWORD IMMEDIATELY!"
+    puts '2. Configure Sidekiq in config/application.rb'
+    puts '3. Start Redis and Sidekiq'
+    puts '4. Visit /data_migration'
+    puts '5. Login with: admin@datamigration.local / password'
+    puts '6. ⚠️  CHANGE THE ADMIN PASSWORD IMMEDIATELY!'
   end
 
-  desc "Seed admin user"
+  desc 'Seed admin user'
   task seed: :environment do
     DataMigration::Engine.load_seed
   end

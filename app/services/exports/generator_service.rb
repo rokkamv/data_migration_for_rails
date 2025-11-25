@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'csv'
 require 'fileutils'
 require 'zlib'
@@ -27,13 +29,11 @@ module Exports
       execution.update!(status: :running, started_at: Time.current)
 
       Dir.mktmpdir do |temp_dir|
-        begin
-          export_all_steps(temp_dir)
-          archive_path = create_archive(temp_dir)
-          finalize_success(archive_path)
-        rescue StandardError => e
-          finalize_failure(e)
-        end
+        export_all_steps(temp_dir)
+        archive_path = create_archive(temp_dir)
+        finalize_success(archive_path)
+      rescue StandardError => e
+        finalize_failure(e)
       end
     end
 
@@ -60,7 +60,7 @@ module Exports
 
       csv_path = File.join(temp_dir, "#{step.source_model_name}_export.csv")
 
-      CSV.open(csv_path, "wb") do |csv|
+      CSV.open(csv_path, 'wb') do |csv|
         csv << headers_for_step(step, model_class)
 
         # Handle both ActiveRecord::Relation and Array
@@ -69,14 +69,14 @@ module Exports
             csv << row_data_for_record(record, step)
             cache_record_values(step, record)
             @stats[:processed_records] += 1
-            update_progress if @stats[:processed_records] % 100 == 0
+            update_progress if (@stats[:processed_records] % 100).zero?
           end
         else
           records.find_each do |record|
             csv << row_data_for_record(record, step)
             cache_record_values(step, record)
             @stats[:processed_records] += 1
-            update_progress if @stats[:processed_records] % 100 == 0
+            update_progress if (@stats[:processed_records] % 100).zero?
           end
         end
       end
@@ -88,16 +88,16 @@ module Exports
     def get_records_for_step(step, model_class)
       # Start with base query from filter_query or all records
       base_query = if step.filter_query.present?
-        # Safely evaluate the filter query with parameter substitution
-        query = step.filter_query.strip
-        # Substitute placeholders with actual values
-        query = substitute_filter_params(query)
-        # Remove leading dot if present (e.g., '.where(...)' becomes 'where(...)')
-        query = query.sub(/^\./, '')
-        model_class.instance_eval(query)
-      else
-        model_class.all
-      end
+                     # Safely evaluate the filter query with parameter substitution
+                     query = step.filter_query.strip
+                     # Substitute placeholders with actual values
+                     query = substitute_filter_params(query)
+                     # Remove leading dot if present (e.g., '.where(...)' becomes 'where(...)')
+                     query = query.sub(/^\./, '')
+                     model_class.instance_eval(query)
+                   else
+                     model_class.all
+                   end
 
       # Apply dependee filtering if this step depends on another
       apply_dependee_filter(step, base_query, model_class)
@@ -120,7 +120,7 @@ module Exports
       remaining_placeholders = result.scan(/\{\{(\w+)\}\}/).flatten
       if remaining_placeholders.any?
         raise "Filter query contains unsubstituted placeholders: #{remaining_placeholders.join(', ')}. " \
-              "Please provide values for these parameters before starting the export."
+              'Please provide values for these parameters before starting the export.'
       end
 
       result
@@ -196,16 +196,14 @@ module Exports
               row << attachment.byte_size
               @stats[:processed_attachments] += 1
             end
-          else
+          elsif step.url?
             # No attachment - add empty values
-            if step.url?
-              row << nil
-            elsif step.raw_data?
-              row << nil
-              row << nil
-              row << nil
-              row << nil
-            end
+            row << nil
+          elsif step.raw_data?
+            row << nil
+            row << nil
+            row << nil
+            row << nil
           end
         end
       end
@@ -231,7 +229,7 @@ module Exports
     # Recursively add directory contents to tar archive
     def add_directory_to_tar(tar, dir_path, base_path)
       Dir.glob("#{dir_path}/*", File::FNM_DOTMATCH).each do |entry|
-        next if File.basename(entry) == '.' || File.basename(entry) == '..'
+        next if ['.', '..'].include?(File.basename(entry))
 
         relative_path = entry.sub("#{base_path}/", '')
 
@@ -267,7 +265,8 @@ module Exports
 
     def calculate_percentage
       return 0 if @stats[:total_records].zero?
-      ((@stats[:processed_records].to_f / @stats[:total_records].to_f) * 100).round(2)
+
+      ((@stats[:processed_records].to_f / @stats[:total_records]) * 100).round(2)
     end
 
     def progress_message
@@ -312,7 +311,7 @@ module Exports
     end
 
     # Initialize cache for a step by looking at what dependent steps need
-    def initialize_cache_for_step(step, model_class)
+    def initialize_cache_for_step(step, _model_class)
       # Find all steps that depend on this step
       dependent_steps = migration_plan.migration_steps.where(dependee_id: step.id)
 
@@ -330,11 +329,11 @@ module Exports
       end
 
       # Initialize cache structure for this step
-      if columns_to_cache.any?
-        @exported_ids_cache[step.id] = {}
-        columns_to_cache.each do |col|
-          @exported_ids_cache[step.id][col] = []
-        end
+      return unless columns_to_cache.any?
+
+      @exported_ids_cache[step.id] = {}
+      columns_to_cache.each do |col|
+        @exported_ids_cache[step.id][col] = []
       end
     end
 
@@ -349,7 +348,7 @@ module Exports
     end
 
     # Apply dependee filtering to the query
-    def apply_dependee_filter(step, base_query, model_class)
+    def apply_dependee_filter(step, base_query, _model_class)
       # If this step has no dependee, return the base query as is
       return base_query unless step.dependee_id.present?
 
@@ -402,7 +401,7 @@ module Exports
       # Generate a Rails URL for the attachment
       # This assumes Active Storage is configured with a service that supports URLs
       Rails.application.routes.url_helpers.rails_blob_url(attachment, only_path: false)
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error "Failed to generate URL for attachment: #{e.message}"
       nil
     end
@@ -425,7 +424,7 @@ module Exports
 
       # Return relative path for CSV
       "attachments/#{step.source_model_name}/#{file_name}"
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error "Failed to export attachment #{attachment_name} for record #{record.id}: #{e.message}"
       @stats[:errors] << {
         step: step.source_model_name,
@@ -439,7 +438,7 @@ module Exports
     # Sanitize filename to avoid filesystem issues
     def sanitize_filename(filename)
       # Remove path separators and other problematic characters
-      filename.gsub(/[\/\\:*?"<>|]/, '_')
+      filename.gsub(%r{[/\\:*?"<>|]}, '_')
     end
   end
 end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module MigrationPlans
   class ImportConfigService
     attr_reader :config_json, :current_user, :errors
@@ -43,12 +45,10 @@ module MigrationPlans
 
       plan_data = config['plan']
 
-      unless plan_data['name'].present?
-        @errors << "Plan name is required"
-      end
+      @errors << 'Plan name is required' unless plan_data['name'].present?
 
       unless plan_data['steps'].is_a?(Array)
-        @errors << "Steps must be an array"
+        @errors << 'Steps must be an array'
         return
       end
 
@@ -71,17 +71,15 @@ module MigrationPlans
         @errors << "Step #{index + 1}: Model '#{step_data['source_model_name']}' not found in this environment"
       end
 
-      unless step_data['sequence'].present?
-        @errors << "Step #{index + 1}: sequence is required"
-      end
+      @errors << "Step #{index + 1}: sequence is required" unless step_data['sequence'].present?
 
       # Validate attachment_export_mode if present
-      if step_data['attachment_export_mode'].present?
-        valid_modes = %w[ignore url raw_data]
-        unless valid_modes.include?(step_data['attachment_export_mode'])
-          @errors << "Step #{index + 1}: invalid attachment_export_mode '#{step_data['attachment_export_mode']}'"
-        end
-      end
+      return unless step_data['attachment_export_mode'].present?
+
+      valid_modes = %w[ignore url raw_data]
+      return if valid_modes.include?(step_data['attachment_export_mode'])
+
+      @errors << "Step #{index + 1}: invalid attachment_export_mode '#{step_data['attachment_export_mode']}'"
     end
 
     def create_plan_with_steps(config)
@@ -140,7 +138,7 @@ module MigrationPlans
       step
     end
 
-    def resolve_dependencies(plan, sorted_steps)
+    def resolve_dependencies(_plan, _sorted_steps)
       @step_mapping.each do |sequence, data|
         step = data[:step]
         dependee_sequence = data[:dependee_sequence]
