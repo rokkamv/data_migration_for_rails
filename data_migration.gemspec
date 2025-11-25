@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.homepage    = "https://github.com/rokkamv/data_migration_for_rails"
   spec.summary     = "Rails engine for migrating data between environments"
   spec.description = "A web-based tool for exporting and importing Rails application data with audit trails and role-based access control."
-  spec.license     = "Proprietary"
+  spec.license     = "Nonstandard"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage
@@ -18,15 +18,15 @@ Gem::Specification.new do |spec|
     Dir["{app,config,db,lib}/**/*", "LICENSE", "Rakefile", "README.md"]
   end
 
-  spec.add_dependency "rails", "~> 7.1.5"
+  spec.add_dependency "rails", "~> 7.1", ">= 7.1.5"
   spec.add_dependency "devise", "~> 4.9"
   spec.add_dependency "pundit", "~> 2.3"
   spec.add_dependency "sidekiq", "~> 7.0"
-  spec.add_dependency "redis", ">= 4.0.1"
+  spec.add_dependency "redis", ">= 6.2", "< 8.0"
   spec.add_dependency "rubyzip", "~> 2.3"
-  spec.add_dependency "bcrypt", "~> 3.1.7"
+  spec.add_dependency "bcrypt", "~> 3.1", ">= 3.1.7"
 
-  spec.add_development_dependency "rspec-rails"
-  spec.add_development_dependency "factory_bot_rails"
-  spec.add_development_dependency "faker"
+  spec.add_development_dependency "rspec-rails", "~> 6.1"
+  spec.add_development_dependency "factory_bot_rails", "~> 6.4"
+  spec.add_development_dependency "faker", "~> 3.2"
 end
