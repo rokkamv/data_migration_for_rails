@@ -19,16 +19,34 @@ A mountable Rails engine for migrating data between Rails application environmen
 
 ## Installation
 
-### 1. Add to Gemfile
+### 1. Configure GitHub Packages Authentication
+
+Add to `~/.bundle/config` or `.bundle/config`:
+
+```yaml
+---
+BUNDLE_RUBYGEMS__PKG__GITHUB__COM: "YOUR_GITHUB_TOKEN"
+```
+
+Or set environment variable:
+```bash
+export BUNDLE_RUBYGEMS__PKG__GITHUB__COM=YOUR_GITHUB_TOKEN
+```
+
+### 2. Add to Gemfile
 
 ```ruby
-gem 'data_migration', path: 'path/to/data_migration_for_rails'
+source "https://rubygems.pkg.github.com/rokkamv" do
+  gem "data_migration", "~> 0.1.0"
+end
 ```
+
+### 3. Install and Migrate
 
 ```bash
 bundle install
-bin/rails data_migration:install:migrations
-bin/rails db:migrate
+bundle exec rake data_migration_engine:install:migrations
+bundle exec rake db:migrate
 ```
 
 ### 2. Mount Routes

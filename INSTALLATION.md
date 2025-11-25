@@ -4,16 +4,32 @@ This guide shows how to mount the Data Migration Tool in your Rails application.
 
 ---
 
-## Step 1: Add to Gemfile
+## Step 1: Configure GitHub Packages Authentication
+
+Add to `~/.bundle/config` or `.bundle/config`:
+
+```yaml
+---
+BUNDLE_RUBYGEMS__PKG__GITHUB__COM: "YOUR_GITHUB_TOKEN"
+```
+
+Or set environment variable:
+```bash
+export BUNDLE_RUBYGEMS__PKG__GITHUB__COM=YOUR_GITHUB_TOKEN
+```
+
+## Step 2: Add to Gemfile
 
 In your Rails app's `Gemfile`:
 
 ```ruby
-# For local development
-gem 'data_migration', path: '../data_migration_for_rails'
+# From GitHub Packages
+source "https://rubygems.pkg.github.com/rokkamv" do
+  gem "data_migration", "~> 0.1.0"
+end
 
-# OR for production (after publishing to git)
-# gem 'data_migration', git: 'https://github.com/yourusername/data_migration'
+# OR for local development
+# gem 'data_migration', path: '../data_migration_for_rails'
 ```
 
 Then run:
@@ -23,19 +39,19 @@ bundle install
 
 ---
 
-## Step 2: Copy Migrations
+## Step 3: Copy Migrations
 
 The engine's migrations need to be copied to your app:
 
 ```bash
-bundle exec rake data_migration:install:migrations
+bundle exec rake data_migration_engine:install:migrations
 ```
 
 This creates migrations in `db/migrate/` with a timestamp prefix.
 
 ---
 
-## Step 3: Run Migrations
+## Step 4: Run Migrations
 
 ```bash
 bundle exec rails db:migrate
@@ -52,7 +68,7 @@ This creates the following tables in your database:
 
 ---
 
-## Step 4: Seed Initial Admin User
+## Step 5: Seed Initial Admin User
 
 Create the initial admin user:
 
@@ -68,7 +84,7 @@ This creates an admin user:
 
 ---
 
-## Step 5: Mount Routes
+## Step 6: Mount Routes
 
 In `config/routes.rb`:
 
@@ -84,7 +100,7 @@ end
 
 ---
 
-## Step 6: Access the Tool
+## Step 7: Access the Tool
 
 Start your Rails server:
 
