@@ -15,6 +15,8 @@ A mountable Rails engine for migrating data between Rails application environmen
 - **Audit Trail** - Complete execution history and detailed record-level tracking
 - **Real-time Progress** - ActionCable integration for live updates
 
+![Landing Page](screenshots/landing_page.png)
+
 ---
 
 ## Installation
@@ -104,6 +106,8 @@ bundle exec sidekiq
 
 Navigate to `/data_migration/migration_plans` and create a new plan.
 
+![Migration Plan Page](screenshots/migration_plan_page.png)
+
 ### 2. Add Migration Steps
 
 Configure each step with:
@@ -126,13 +130,23 @@ where("created_at > ?", "{{cutoff_date}}")
   - **URL** - Export attachment URLs (for cloud storage)
   - **Raw Data** - Export actual files in archive (for local storage)
 
+![Migration Step Form](screenshots/migration_step_form.png)
+
 ### 3. Export
 
 Click **Export**, fill in any filter parameters, and download the `.tar.gz` archive.
 
+![Export Execution Form](screenshots/export_execution_form.png)
+
+![Executed Export Page](screenshots/executed_export_page.png)
+
 ### 4. Import
 
 On target environment, click **Import**, upload the archive, and select conflict resolution strategy.
+
+![Import Execution Form](screenshots/import_execution_form.png)
+
+![Executed Import Page](screenshots/executed_import_page.png)
 
 ---
 

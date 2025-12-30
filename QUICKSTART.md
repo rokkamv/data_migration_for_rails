@@ -81,9 +81,11 @@ Login with:
 
 **Change the password immediately** via the user dropdown menu > Change Password.
 
+![Landing Page](screenshots/landing_page.png)
+
 ---
 
-## First Migration in 3 Minutes
+## First Migration
 
 ### Step 1: Create a Migration Plan
 
@@ -91,6 +93,8 @@ Login with:
 2. Name: `Test Migration`
 3. Description: `Testing export/import`
 4. Click **"Create Migration Plan"**
+
+![Migration Plan Page](screenshots/migration_plan_page.png)
 
 ### Step 2: Add a Migration Step
 
@@ -102,6 +106,8 @@ Login with:
    - **Attachment Export Mode** (optional): Choose `Ignore`, `URL`, or `Raw Data` for Active Storage attachments
 3. Click **"Create Migration Step"**
 
+![Migration Step Form](screenshots/migration_step_form.png)
+
 ### Step 3: Export Data
 
 1. Click **"Export"** button on the migration plan page
@@ -109,12 +115,22 @@ Login with:
 3. Execution page will show progress
 4. When complete, click **"Download Export Archive"**
 
-### Step 4: Import Data (Optional Test)
+![Export Execution Form](screenshots/export_execution_form.png)
+
+![Executions Index](screenshots/executions_index.png)
+
+![Executed Export Page](screenshots/executed_export_page.png)
+
+### Step 4: Import Data (Optional Test in a separate instance)
 
 1. Click **"Import"** button
 2. Upload the `.tar.gz` file you just downloaded
 3. Click **"Start Import"**
 4. Monitor progress on the execution page
+
+![Import Execution Form](screenshots/import_execution_form.png)
+
+![Executed Import Page](screenshots/executed_import_page.png)
 
 ---
 
