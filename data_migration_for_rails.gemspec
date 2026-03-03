@@ -20,15 +20,15 @@ Gem::Specification.new do |spec|
     Dir['{app,config,db,lib}/**/*', 'LICENSE', 'Rakefile', 'README.md']
   end
 
-  spec.add_dependency 'bcrypt', '>= 3.1.7'
-  spec.add_dependency 'devise', '>= 4.9'
-  spec.add_dependency 'pundit', '>= 2.3'
-  spec.add_dependency 'rails', '>= 7.1'
-  spec.add_dependency 'redis', '>= 4.0.1'
-  spec.add_dependency 'rubyzip', '>= 2.3'
-  spec.add_dependency 'sidekiq', '>= 7.0'
+  spec.add_dependency 'bcrypt', '~> 3.1', '>= 3.1.7'
+  spec.add_dependency 'devise', '~> 4.9'
+  spec.add_dependency 'pundit', '~> 2.3'
+  spec.add_dependency 'rails', '>= 7.1', '< 9'
+  spec.add_dependency 'redis', '~> 4.0', '>= 4.0.1'
+  spec.add_dependency 'rubyzip', '~> 2.3'
+  spec.add_dependency 'sidekiq', '~> 7.0'
 
-  spec.add_development_dependency 'factory_bot_rails', '>= 6.0'
-  spec.add_development_dependency 'faker', '>= 3.0'
-  spec.add_development_dependency 'rspec-rails', '>= 6.0'
+  spec.add_development_dependency 'factory_bot_rails', '~> 6.0'
+  spec.add_development_dependency 'faker', '~> 3.0'
+  spec.add_development_dependency 'rspec-rails', '~> 6.0'
 end
