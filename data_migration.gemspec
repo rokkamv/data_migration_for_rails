@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.homepage    = 'https://github.com/rokkamv/data_migration_for_rails'
   spec.summary     = 'Rails engine for migrating data between environments'
   spec.description = 'A web-based tool for exporting and importing Rails application data with audit trails and role-based access control.'
-  spec.license     = 'Nonstandard'
+  spec.license     = 'GPL-3.0'
 
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['source_code_uri'] = spec.homepage

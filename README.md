@@ -21,29 +21,13 @@ A mountable Rails engine for migrating data between Rails application environmen
 
 ## Installation
 
-### 1. Configure GitHub Packages Authentication
-
-Add to `~/.bundle/config` or `.bundle/config`:
-
-```yaml
----
-BUNDLE_RUBYGEMS__PKG__GITHUB__COM: "YOUR_GITHUB_TOKEN"
-```
-
-Or set environment variable:
-```bash
-export BUNDLE_RUBYGEMS__PKG__GITHUB__COM=YOUR_GITHUB_TOKEN
-```
-
-### 2. Add to Gemfile
+### 1. Add to Gemfile
 
 ```ruby
-source "https://rubygems.pkg.github.com/rokkamv" do
-  gem "data_migration", "~> 0.1.0"
-end
+gem "data_migration", "~> 0.1.1"
 ```
 
-### 3. Install and Migrate
+### 2. Install and Migrate
 
 ```bash
 bundle install
@@ -51,7 +35,7 @@ bundle exec rake data_migration_engine:install:migrations
 bundle exec rake db:migrate
 ```
 
-### 4. Mount Routes
+### 3. Mount Routes
 
 In `config/routes.rb`:
 
@@ -61,7 +45,7 @@ Rails.application.routes.draw do
 end
 ```
 
-### 5. Seed Initial Admin User
+### 4. Seed Initial Admin User
 
 ```bash
 bundle exec rake data_migration:seed
@@ -73,7 +57,7 @@ This creates an admin user with independent authentication:
 
 **Change the password immediately** after first login! Admin users can create additional users via the "Users" menu.
 
-### 6. Configure Sidekiq
+### 5. Configure Sidekiq
 
 In `config/application.rb`:
 
@@ -207,8 +191,6 @@ Perfect for deploying migration plans to production or sharing with team members
 
 ## License
 
-This software is licensed under a proprietary license.
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
-Copyright © 2025 Vaibhav Rokkam. All rights reserved.
-
-Unauthorized copying, distribution, modification, or use is strictly prohibited without explicit written permission.
+Copyright © 2025 Vaibhav Rokkam.
