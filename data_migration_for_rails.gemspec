@@ -3,7 +3,7 @@
 require_relative 'lib/data_migration/version'
 
 Gem::Specification.new do |spec|
-  spec.name        = 'data_migration'
+  spec.name        = 'data_migration_for_rails'
   spec.version     = DataMigration::VERSION
   spec.authors     = ['Vaibhav Rokkam']
   spec.email       = ['vaibhav.rao200@gmail.com']

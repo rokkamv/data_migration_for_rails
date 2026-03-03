@@ -24,7 +24,7 @@ A mountable Rails engine for migrating data between Rails application environmen
 ### 1. Add to Gemfile
 
 ```ruby
-gem "data_migration", "~> 0.1.1"
+gem "data_migration_for_rails", "~> 0.1.1"
 ```
 
 ### 2. Install and Migrate
