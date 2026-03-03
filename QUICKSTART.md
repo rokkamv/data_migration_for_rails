@@ -13,8 +13,7 @@ Get the Data Migration engine installed and running in your Rails app in 5 minut
 ### 1. Add to Gemfile
 
 ```ruby
-gem 'data_migration', path: '../data_migration_for_rails'
-# Or: gem 'data_migration', git: 'https://github.com/rokkamv/data_migration_for_rails.git'
+gem 'data_migration', '~> 0.1.1'
 ```
 
 ```bash
