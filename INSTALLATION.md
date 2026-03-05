@@ -9,7 +9,7 @@ This guide shows how to mount the Data Migration Tool in your Rails application.
 In your Rails app's `Gemfile`:
 
 ```ruby
-gem "data_migration_for_rails", "~> 0.1"
+gem "data_migration_for_rails", "~> 0.1", ">= 0.1.5"
 
 # OR for local development
 # gem 'data_migration', path: '../data_migration_for_rails'

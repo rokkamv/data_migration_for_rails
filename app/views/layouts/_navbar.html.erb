@@ -16,7 +16,7 @@
         </li>
         <% if current_user.admin? %>
           <li class="nav-item">
-            <%= link_to "Users", users_path, class: "nav-link" %>
+            <%= link_to "Users", '/data_migration/users', class: "nav-link" %>
           </li>
         <% end %>
       </ul>

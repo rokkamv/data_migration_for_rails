@@ -4,7 +4,7 @@ DataMigration::Engine.routes.draw do
   # Devise routes for DataMigrationUser
   devise_for :users, class_name: 'DataMigrationUser',
                      controllers: {
-                       sessions: 'users/sessions'
+                       sessions: 'data_migration/users/sessions'
                      },
                      path: '',
                      path_names: {
@@ -15,7 +15,7 @@ DataMigration::Engine.routes.draw do
 
   # Define root path with devise_scope
   devise_scope :user do
-    root to: 'users/sessions#new'
+    root to: 'data_migration/users/sessions#new'
 
     # Registration routes for password changes only (edit/update)
     resource :registration,

@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
-module Users
-  class SessionsController < Devise::SessionsController
+module DataMigration
+  module Users
+    class SessionsController < Devise::SessionsController
     # Skip CSRF verification for the new action to handle Devise FailureApp redirects
     skip_before_action :verify_authenticity_token, only: [:new]
 
@@ -26,5 +27,6 @@ module Users
     # def configure_sign_in_params
     #   devise_parameter_sanitizer.permit(:sign_in, keys: [:attribute])
     # end
+    end
   end
 end

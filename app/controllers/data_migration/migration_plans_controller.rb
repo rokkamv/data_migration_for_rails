@@ -21,6 +21,7 @@ module DataMigration
 
     def create
       @migration_plan = MigrationPlan.new(migration_plan_params)
+      @migration_plan.user = current_user
       authorize @migration_plan
 
       if @migration_plan.save

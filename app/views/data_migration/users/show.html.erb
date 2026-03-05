@@ -22,15 +22,15 @@
 
             <% if policy(@user).change_role? && @user.id != current_user.id %>
               <div class="btn-group btn-group-sm ms-3">
-                <%= button_to "Make Viewer", change_role_user_path(@user, role: :viewer),
+                <%= button_to "Make Viewer", '/data_migration/users/' + @user.id.to_s + '?role=viewer',
                     method: :patch,
                     class: "btn btn-sm btn-outline-secondary #{'active' if @user.viewer?}",
                     data: { confirm: "Change #{@user.email} to Viewer?" } %>
-                <%= button_to "Make Operator", change_role_user_path(@user, role: :operator),
+                <%= button_to "Make Operator", '/data_migration/users/' + @user.id.to_s + '?role=operator',
                     method: :patch,
                     class: "btn btn-sm btn-outline-warning #{'active' if @user.operator?}",
                     data: { confirm: "Change #{@user.email} to Operator?" } %>
-                <%= button_to "Make Admin", change_role_user_path(@user, role: :admin),
+                <%= button_to "Make Admin", '/data_migration/users/' + @user.id.to_s + '?role=admin',
                     method: :patch,
                     class: "btn btn-sm btn-outline-danger #{'active' if @user.admin?}",
                     data: { confirm: "Change #{@user.email} to Admin?" } %>
@@ -126,7 +126,7 @@
 
     <div class="card mt-3">
       <div class="card-body">
-        <%= link_to "← Back to Users", users_path, class: "btn btn-secondary w-100" %>
+        <%= link_to "← Back to Users", '/data_migration/users', class: "btn btn-secondary w-100" %>
       </div>
     </div>
   </div>

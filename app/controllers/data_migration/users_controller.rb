@@ -21,7 +21,7 @@ module DataMigration
       @user = DataMigrationUser.new(user_params)
 
       if @user.save
-        redirect_to users_path, notice: 'User created successfully.'
+        redirect_to '/data_migration/users', notice: 'User created successfully.'
       else
         render :new, status: :unprocessable_entity
       end
@@ -42,7 +42,7 @@ module DataMigration
                          end
 
       if @user.update(params_to_update)
-        redirect_to users_path, notice: 'User updated successfully.'
+        redirect_to '/data_migration/users', notice: 'User updated successfully.'
       else
         render :edit, status: :unprocessable_entity
       end
@@ -52,9 +52,9 @@ module DataMigration
       authorize @user
 
       if @user.destroy
-        redirect_to users_path, notice: 'User deleted successfully.'
+        redirect_to '/data_migration/users', notice: 'User deleted successfully.'
       else
-        redirect_to users_path, alert: @user.errors.full_messages.join(', ')
+        redirect_to '/data_migration/users', alert: @user.errors.full_messages.join(', ')
       end
     end
 
@@ -65,7 +65,7 @@ module DataMigration
     end
 
     def user_params
-      params.require(:user).permit(:name, :email, :password, :password_confirmation, :role)
+      params.require(:data_migration_user).permit(:name, :email, :password, :password_confirmation, :role)
     end
   end
 end

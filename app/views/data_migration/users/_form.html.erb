@@ -1,4 +1,4 @@
-<%= form_with(model: user, url: user.new_record? ? users_path : user_path(user), local: true) do |form| %>
+<%= form_with(model: user, url: user.new_record? ? '/data_migration/users' : '/data_migration/users/' + user.id.to_s, local: true) do |form| %>
   <% if user.errors.any? %>
     <div class="alert alert-danger">
       <h4><%= pluralize(user.errors.count, "error") %> prohibited this user from being saved:</h4>
@@ -45,5 +45,5 @@
   </div>
 
   <%= form.submit user.new_record? ? "Create User" : "Update User", class: "btn btn-primary" %>
-  <%= link_to "Cancel", users_path, class: "btn btn-secondary" %>
+  <%= link_to "Cancel", '/data_migration/users', class: "btn btn-secondary" %>
 <% end %>
