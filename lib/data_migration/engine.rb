@@ -10,6 +10,15 @@ module DataMigration
     # Mountable engine - does NOT use isolate_namespace
     # This allows the engine to integrate with the host app's models
 
+    # Expose engine migrations to the host app
+    initializer 'data_migration.migrations' do |app|
+      unless app.root.to_s == root.to_s
+        config.paths['db/migrate'].expanded.each do |path|
+          app.config.paths['db/migrate'] << path
+        end
+      end
+    end
+
     # Ensure engine's app directories are autoloaded
     config.autoload_paths += %W[
       #{config.root}/app/controllers

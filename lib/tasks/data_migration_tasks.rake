@@ -9,7 +9,7 @@ namespace :data_migration do
     # Copy migrations
     puts "
 📦 Copying migrations..."
-    Rake::Task['data_migration:install:migrations'].invoke
+    Rake::Task['data_migration_engine:install:migrations'].invoke
 
     # Run migrations
     puts "
