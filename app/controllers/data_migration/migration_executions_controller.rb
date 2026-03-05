@@ -19,7 +19,7 @@ module DataMigration
       @action_counts = {}
 
       # Only load migration records for import executions
-      return unless @execution.import?
+      return unless @execution.import_type?
 
       # Reload association to ensure fresh data
       @execution.reload
@@ -50,7 +50,7 @@ module DataMigration
     def download
       authorize @execution, :download?
 
-      unless @execution.completed? && @execution.export? && @execution.file_path.present?
+      unless @execution.completed? && @execution.export_type? && @execution.file_path.present?
         redirect_to @execution, alert: 'Export file not available.'
         return
       end

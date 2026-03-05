@@ -46,7 +46,7 @@
             <td>
               <% if execution.stats.present? %>
                 <small>
-                  <% if execution.export? %>
+                  <% if execution.export_type? %>
                     <%= execution.stats['processed_records'] || 0 %> records
                   <% else %>
                     <span class="text-success"><%= execution.stats['created'] || 0 %></span> /
@@ -59,7 +59,7 @@
             <td>
               <div class="btn-group btn-group-sm">
                 <%= link_to "View", execution, class: "btn btn-outline-primary" %>
-                <% if execution.completed? && execution.export? && execution.file_path.present? %>
+                <% if execution.completed? && execution.export_type? && execution.file_path.present? %>
                   <%= link_to "Download", download_migration_execution_path(execution), class: "btn btn-outline-success" %>
                 <% end %>
               </div>

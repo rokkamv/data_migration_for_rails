@@ -64,7 +64,7 @@
         <!-- Statistics -->
         <% if @execution.stats.present? %>
           <div class="row text-center mt-4">
-            <% if @execution.export? %>
+            <% if @execution.export_type? %>
               <div class="col-md-4">
                 <div class="card">
                   <div class="card-body">
@@ -132,7 +132,7 @@
                 <div class="card bg-light">
                   <div class="card-body">
                     <h4 class="text-success mb-0">
-                      📎 <%= @execution.stats['processed_attachments'] || 0 %> Attachments <%= @execution.export? ? 'Exported' : 'Imported' %>
+                      📎 <%= @execution.stats['processed_attachments'] || 0 %> Attachments <%= @execution.export_type? ? 'Exported' : 'Imported' %>
                     </h4>
                   </div>
                 </div>
@@ -142,7 +142,7 @@
         <% end %>
 
         <!-- Download Export -->
-        <% if @execution.completed? && @execution.export? && @execution.file_path.present? %>
+        <% if @execution.completed? && @execution.export_type? && @execution.file_path.present? %>
           <div class="d-grid gap-2 mt-4">
             <%= link_to "📥 Download Export Archive", download_migration_execution_path(@execution), class: "btn btn-success btn-lg" %>
           </div>
@@ -151,7 +151,7 @@
     </div>
 
     <!-- Migration Records -->
-    <% if @execution.import? && @execution.migration_records.any? %>
+    <% if @execution.import_type? && @execution.migration_records.any? %>
       <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h5 class="mb-0">Processed Records</h5>

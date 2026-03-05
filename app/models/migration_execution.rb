@@ -7,7 +7,7 @@ class MigrationExecution < ApplicationRecord
   has_many :migration_records, dependent: :destroy
 
   # Enums
-  enum execution_type: { export: 0, import: 1 }
+  enum execution_type: { export: 0, import: 1 }, _suffix: :type
   enum status: { pending: 0, running: 1, completed: 2, failed: 3 }
 
   # Validations

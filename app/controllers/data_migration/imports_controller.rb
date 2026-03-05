@@ -7,7 +7,7 @@ module DataMigration
     def new
       authorize @migration_plan, :execute?
       @filter_params = extract_placeholders_from_plan
-      @last_export = @migration_plan.migration_executions.export.completed.order(created_at: :desc).first
+      @last_export = @migration_plan.migration_executions.export_type.completed.order(created_at: :desc).first
     end
 
     def create
